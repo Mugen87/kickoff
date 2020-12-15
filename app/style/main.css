@@ -1,0 +1,24 @@
+* {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+body {
+	margin:0;
+}
+
+.full-screen {
+	position: fixed;
+	height: 100%;
+	width: 100%;
+	background-color: #ffffff;
+	display: flex;
+	flex-direction: column;
+}
+
+#start-screen {
+	align-items: center;
+	justify-content: center;
+}
