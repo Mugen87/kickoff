@@ -4,9 +4,10 @@
 
 import world from './core/World.js';
 
-const startButton = document.getElementById( 'start-screen-start' );
-startButton.addEventListener( 'click', () => {
+// const startButton = document.getElementById( 'start-screen-start' );
+// startButton.addEventListener( 'click', () => {
 
-	world.init();
+// 	world.init();
 
-} );
+// } );
+world.init();

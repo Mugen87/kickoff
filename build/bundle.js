@@ -30839,6 +30839,121 @@
 
 	}
 
+	class SphereBufferGeometry extends BufferGeometry {
+
+		constructor( radius = 1, widthSegments = 8, heightSegments = 6, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI ) {
+
+			super();
+			this.type = 'SphereBufferGeometry';
+
+			this.parameters = {
+				radius: radius,
+				widthSegments: widthSegments,
+				heightSegments: heightSegments,
+				phiStart: phiStart,
+				phiLength: phiLength,
+				thetaStart: thetaStart,
+				thetaLength: thetaLength
+			};
+
+			widthSegments = Math.max( 3, Math.floor( widthSegments ) );
+			heightSegments = Math.max( 2, Math.floor( heightSegments ) );
+
+			const thetaEnd = Math.min( thetaStart + thetaLength, Math.PI );
+
+			let index = 0;
+			const grid = [];
+
+			const vertex = new Vector3();
+			const normal = new Vector3();
+
+			// buffers
+
+			const indices = [];
+			const vertices = [];
+			const normals = [];
+			const uvs = [];
+
+			// generate vertices, normals and uvs
+
+			for ( let iy = 0; iy <= heightSegments; iy ++ ) {
+
+				const verticesRow = [];
+
+				const v = iy / heightSegments;
+
+				// special case for the poles
+
+				let uOffset = 0;
+
+				if ( iy == 0 && thetaStart == 0 ) {
+
+					uOffset = 0.5 / widthSegments;
+
+				} else if ( iy == heightSegments && thetaEnd == Math.PI ) {
+
+					uOffset = - 0.5 / widthSegments;
+
+				}
+
+				for ( let ix = 0; ix <= widthSegments; ix ++ ) {
+
+					const u = ix / widthSegments;
+
+					// vertex
+
+					vertex.x = - radius * Math.cos( phiStart + u * phiLength ) * Math.sin( thetaStart + v * thetaLength );
+					vertex.y = radius * Math.cos( thetaStart + v * thetaLength );
+					vertex.z = radius * Math.sin( phiStart + u * phiLength ) * Math.sin( thetaStart + v * thetaLength );
+
+					vertices.push( vertex.x, vertex.y, vertex.z );
+
+					// normal
+
+					normal.copy( vertex ).normalize();
+					normals.push( normal.x, normal.y, normal.z );
+
+					// uv
+
+					uvs.push( u + uOffset, 1 - v );
+
+					verticesRow.push( index ++ );
+
+				}
+
+				grid.push( verticesRow );
+
+			}
+
+			// indices
+
+			for ( let iy = 0; iy < heightSegments; iy ++ ) {
+
+				for ( let ix = 0; ix < widthSegments; ix ++ ) {
+
+					const a = grid[ iy ][ ix + 1 ];
+					const b = grid[ iy ][ ix ];
+					const c = grid[ iy + 1 ][ ix ];
+					const d = grid[ iy + 1 ][ ix + 1 ];
+
+					if ( iy !== 0 || thetaStart > 0 ) indices.push( a, b, d );
+					if ( iy !== heightSegments - 1 || thetaEnd < Math.PI ) indices.push( b, c, d );
+
+				}
+
+			}
+
+			// build geometry
+
+			this.setIndex( indices );
+			this.setAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
+			this.setAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
+			this.setAttribute( 'uv', new Float32BufferAttribute( uvs, 2 ) );
+
+		}
+
+	}
+
 	/**
 	 * parameters = {
 	 *  color: <THREE.Color>
@@ -42919,6 +43034,84 @@
 
 	ImmediateRenderObject.prototype.isImmediateRenderObject = true;
 
+	class PlaneHelper extends Line {
+
+		constructor( plane, size = 1, hex = 0xffff00 ) {
+
+			const color = hex;
+
+			const positions = [ 1, - 1, 1, - 1, 1, 1, - 1, - 1, 1, 1, 1, 1, - 1, 1, 1, - 1, - 1, 1, 1, - 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0 ];
+
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new Float32BufferAttribute( positions, 3 ) );
+			geometry.computeBoundingSphere();
+
+			super( geometry, new LineBasicMaterial( { color: color, toneMapped: false } ) );
+
+			this.type = 'PlaneHelper';
+
+			this.plane = plane;
+
+			this.size = size;
+
+			const positions2 = [ 1, 1, 1, - 1, 1, 1, - 1, - 1, 1, 1, 1, 1, - 1, - 1, 1, 1, - 1, 1 ];
+
+			const geometry2 = new BufferGeometry();
+			geometry2.setAttribute( 'position', new Float32BufferAttribute( positions2, 3 ) );
+			geometry2.computeBoundingSphere();
+
+			this.add( new Mesh( geometry2, new MeshBasicMaterial( { color: color, opacity: 0.2, transparent: true, depthWrite: false, toneMapped: false } ) ) );
+
+		}
+
+		updateMatrixWorld( force ) {
+
+			let scale = - this.plane.constant;
+
+			if ( Math.abs( scale ) < 1e-8 ) scale = 1e-8; // sign does not matter
+
+			this.scale.set( 0.5 * this.size, 0.5 * this.size, scale );
+
+			this.children[ 0 ].material.side = ( scale < 0 ) ? BackSide : FrontSide; // renderer flips side when determinant < 0; flipping not wanted here
+
+			this.lookAt( this.plane.normal );
+
+			super.updateMatrixWorld( force );
+
+		}
+
+	}
+
+	class AxesHelper extends LineSegments {
+
+		constructor( size = 1 ) {
+
+			const vertices = [
+				0, 0, 0,	size, 0, 0,
+				0, 0, 0,	0, size, 0,
+				0, 0, 0,	0, 0, size
+			];
+
+			const colors = [
+				1, 0, 0,	1, 0.6, 0,
+				0, 1, 0,	0.6, 1, 0,
+				0, 0, 1,	0, 0.6, 1
+			];
+
+			const geometry = new BufferGeometry();
+			geometry.setAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
+			geometry.setAttribute( 'color', new Float32BufferAttribute( colors, 3 ) );
+
+			const material = new LineBasicMaterial( { vertexColors: true, toneMapped: false } );
+
+			super( geometry, material );
+
+			this.type = 'AxesHelper';
+
+		}
+
+	}
+
 	//
 
 	Curve.create = function ( construct, getPoint ) {
@@ -52892,6 +53085,210 @@
 
 	}
 
+	const v1$2 = new Vector3$1();
+	const v2 = new Vector3$1();
+	const d = new Vector3$1();
+
+	/**
+	* Class representing a plane in 3D space. The plane is specified in Hessian normal form.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
+	class Plane$1 {
+
+		/**
+		* Constructs a new plane with the given values.
+		*
+		* @param {Vector3} normal - The normal vector of the plane.
+		* @param {Number} constant - The distance of the plane from the origin.
+		*/
+		constructor( normal = new Vector3$1( 0, 0, 1 ), constant = 0 ) {
+
+			/**
+			* The normal vector of the plane.
+			* @type Vector3
+			*/
+			this.normal = normal;
+
+			/**
+			* The distance of the plane from the origin.
+			* @type Number
+			*/
+			this.constant = constant;
+
+		}
+
+		/**
+		* Sets the given values to this plane.
+		*
+		* @param {Vector3} normal - The normal vector of the plane.
+		* @param {Number} constant - The distance of the plane from the origin.
+		* @return {Plane} A reference to this plane.
+		*/
+		set( normal, constant ) {
+
+			this.normal = normal;
+			this.constant = constant;
+
+			return this;
+
+		}
+
+		/**
+		* Copies all values from the given plane to this plane.
+		*
+		* @param {Plane} plane - The plane to copy.
+		* @return {Plane} A reference to this plane.
+		*/
+		copy( plane ) {
+
+			this.normal.copy( plane.normal );
+			this.constant = plane.constant;
+
+			return this;
+
+		}
+
+		/**
+		* Creates a new plane and copies all values from this plane.
+		*
+		* @return {Plane} A new plane.
+		*/
+		clone() {
+
+			return new this.constructor().copy( this );
+
+		}
+
+		/**
+		* Computes the signed distance from the given 3D vector to this plane.
+		* The sign of the distance indicates the half-space in which the points lies.
+		* Zero means the point lies on the plane.
+		*
+		* @param {Vector3} point - A point in 3D space.
+		* @return {Number} The signed distance.
+		*/
+		distanceToPoint( point ) {
+
+			return this.normal.dot( point ) + this.constant;
+
+		}
+
+		/**
+		* Sets the values of the plane from the given normal vector and a coplanar point.
+		*
+		* @param {Vector3} normal - A normalized vector.
+		* @param {Vector3} point - A coplanar point.
+		* @return {Plane} A reference to this plane.
+		*/
+		fromNormalAndCoplanarPoint( normal, point ) {
+
+			this.normal.copy( normal );
+			this.constant = - point.dot( this.normal );
+
+			return this;
+
+		}
+
+		/**
+		* Sets the values of the plane from three given coplanar points.
+		*
+		* @param {Vector3} a - A coplanar point.
+		* @param {Vector3} b - A coplanar point.
+		* @param {Vector3} c - A coplanar point.
+		* @return {Plane} A reference to this plane.
+		*/
+		fromCoplanarPoints( a, b, c ) {
+
+			v1$2.subVectors( c, b ).cross( v2.subVectors( a, b ) ).normalize();
+
+			this.fromNormalAndCoplanarPoint( v1$2, a );
+
+			return this;
+
+		}
+
+		/**
+		* Performs a plane/plane intersection test and stores the intersection point
+		* to the given 3D vector. If no intersection is detected, *null* is returned.
+		*
+		* Reference: Intersection of Two Planes in Real-Time Collision Detection
+		* by Christer Ericson (chapter 5.4.4)
+		*
+		* @param {Plane} plane - The plane to test.
+		* @param {Vector3} result - The result vector.
+		* @return {Vector3} The result vector.
+		*/
+		intersectPlane( plane, result ) {
+
+			// compute direction of intersection line
+
+			d.crossVectors( this.normal, plane.normal );
+
+			// if d is zero, the planes are parallel (and separated)
+			// or coincident, so they’re not considered intersecting
+
+			const denom = d.dot( d );
+
+			if ( denom === 0 ) return null;
+
+			// compute point on intersection line
+
+			v1$2.copy( plane.normal ).multiplyScalar( this.constant );
+			v2.copy( this.normal ).multiplyScalar( plane.constant );
+
+			result.crossVectors( v1$2.sub( v2 ), d ).divideScalar( denom );
+
+			return result;
+
+		}
+
+		/**
+		* Returns true if the given plane intersects this plane.
+		*
+		* @param {Plane} plane - The plane to test.
+		* @return {Boolean} The result of the intersection test.
+		*/
+		intersectsPlane( plane ) {
+
+			const d = this.normal.dot( plane.normal );
+
+			return ( Math.abs( d ) !== 1 );
+
+		}
+
+		/**
+		* Projects the given point onto the plane. The result is written
+		* to the given vector.
+		*
+		* @param {Vector3} point - The point to project onto the plane.
+		* @param {Vector3} result - The projected point.
+		* @return {Vector3} The projected point.
+		*/
+		projectPoint( point, result ) {
+
+			v1$2.copy( this.normal ).multiplyScalar( this.distanceToPoint( point ) );
+
+			result.subVectors( point, v1$2 );
+
+			return result;
+
+		}
+
+		/**
+		* Returns true if the given plane is deep equal with this plane.
+		*
+		* @param {Plane} plane - The plane to test.
+		* @return {Boolean} The result of the equality test.
+		*/
+		equals( plane ) {
+
+			return plane.normal.equals( this.normal ) && plane.constant === this.constant;
+
+		}
+
+	}
+
 	/**
 	* Class for representing a timer.
 	*
@@ -53103,6 +53500,409 @@
 	function handleVisibilityChange() {
 
 		if ( document.hidden === false ) this.reset();
+
+	}
+
+	/**
+	* Base class for representing a state in context of State-driven agent design.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
+	class State {
+
+		/**
+		* This method is called once during a state transition when the {@link StateMachine} makes
+		* this state active.
+		*
+		* @param {GameEntity} owner - The game entity that represents the execution context of this state.
+		*/
+		enter( /* owner */ ) {}
+
+		/**
+		* This method is called per simulation step if this state is active.
+		*
+		* @param {GameEntity} owner - The game entity that represents the execution context of this state.
+		*/
+		execute( /* owner */ ) {}
+
+		/**
+		* This method is called once during a state transition when the {@link StateMachine} makes
+		* this state inactive.
+		*
+		* @param {GameEntity} owner - The game entity that represents the execution context of this state.
+		*/
+		exit( /* owner */ ) {}
+
+		/**
+		* Transforms this instance into a JSON object.
+		*
+		* @return {Object} The JSON object.
+		*/
+		toJSON() {}
+
+		/**
+		* Restores this instance from the given JSON object.
+		*
+		* @param {Object} json - The JSON object.
+		* @return {State} A reference to this state.
+		*/
+		fromJSON( /* json */ ) {}
+
+		/**
+		* Restores UUIDs with references to GameEntity objects.
+		*
+		* @param {Map} entities - Maps game entities to UUIDs.
+		* @return {State} A reference to this state.
+		*/
+		resolveReferences( /* entities */ ) {}
+
+		/**
+		* This method is called when messaging between game entities occurs.
+		*
+		* @param {GameEntity} owner - The game entity that represents the execution context of this state.
+		* @param {Telegram} telegram - A data structure containing the actual message.
+		* @return {Boolean} Whether the message was processed or not.
+		*/
+		onMessage( /* owner, telegram */ ) {
+
+			return false;
+
+		}
+
+	}
+
+	/**
+	* Finite state machine (FSM) for implementing State-driven agent design.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
+	class StateMachine {
+
+		/**
+		* Constructs a new state machine with the given values.
+		*
+		* @param {GameEntity} owner - The owner of this state machine.
+		*/
+		constructor( owner = null ) {
+
+			/**
+			* The game entity that owns this state machine.
+			* @type GameEntity
+			*/
+			this.owner = owner;
+
+			/**
+			* The current state of the game entity.
+			* @type State
+			*/
+			this.currentState = null;
+
+			/**
+			* The previous state of the game entity.
+			* @type State
+			*/
+			this.previousState = null; // a reference to the last state the agent was in
+
+			/**
+			* This state logic is called every time the state machine is updated.
+			* @type State
+			*/
+			this.globalState = null;
+
+			/**
+			* A map with all states of the state machine.
+			* @type Map
+			*/
+			this.states = new Map();
+
+			//
+
+			this._typesMap = new Map();
+
+		}
+
+		/**
+		* Updates the internal state of the FSM. Usually called by {@link GameEntity#update}.
+		*
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		update() {
+
+			if ( this.globalState !== null ) {
+
+				this.globalState.execute( this.owner );
+
+			}
+
+			if ( this.currentState !== null ) {
+
+				this.currentState.execute( this.owner );
+
+			}
+
+			return this;
+
+		}
+
+		/**
+		* Adds a new state with the given ID to the state machine.
+		*
+		* @param {String} id - The ID of the state.
+		* @param {State} state - The state.
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		add( id, state ) {
+
+			if ( state instanceof State ) {
+
+				this.states.set( id, state );
+
+			} else {
+
+				Logger.warn( 'YUKA.StateMachine: .add() needs a parameter of type "YUKA.State".' );
+
+			}
+
+			return this;
+
+		}
+
+		/**
+		* Removes a state via its ID from the state machine.
+		*
+		* @param {String} id - The ID of the state.
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		remove( id ) {
+
+			this.states.delete( id );
+
+			return this;
+
+		}
+
+		/**
+		* Returns the state for the given ID.
+		*
+		* @param {String} id - The ID of the state.
+		* @return {State} The state for the given ID.
+		*/
+		get( id ) {
+
+			return this.states.get( id );
+
+		}
+
+		/**
+		* Performs a state change to the state defined by its ID.
+		*
+		* @param {String} id - The ID of the state.
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		changeTo( id ) {
+
+			const state = this.get( id );
+
+			this._change( state );
+
+			return this;
+
+		}
+
+		/**
+		* Returns to the previous state.
+		*
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		revert() {
+
+			this._change( this.previousState );
+
+			return this;
+
+		}
+
+		/**
+		* Returns true if this FSM is in the given state.
+		*
+		* @return {Boolean} Whether this FSM is in the given state or not.
+		*/
+		in( id ) {
+
+			const state = this.get( id );
+
+			return ( state === this.currentState );
+
+		}
+
+		/**
+		* Tries to dispatch the massage to the current or global state and returns true
+		* if the message was processed successfully.
+		*
+		* @param {Telegram} telegram - The telegram with the message data.
+		* @return {Boolean} Whether the message was processed or not.
+		*/
+		handleMessage( telegram ) {
+
+			// first see, if the current state is valid and that it can handle the message
+
+			if ( this.currentState !== null && this.currentState.onMessage( this.owner, telegram ) === true ) {
+
+				return true;
+
+			}
+
+			// if not, and if a global state has been implemented, send the message to the global state
+
+			if ( this.globalState !== null && this.globalState.onMessage( this.owner, telegram ) === true ) {
+
+				return true;
+
+			}
+
+			return false;
+
+		}
+
+		/**
+		* Transforms this instance into a JSON object.
+		*
+		* @return {Object} The JSON object.
+		*/
+		toJSON() {
+
+			const json = {
+				owner: this.owner.uuid,
+				currentState: null,
+				previousState: null,
+				globalState: null,
+				states: new Array()
+			};
+
+			const statesMap = new Map();
+
+			// states
+
+			for ( let [ id, state ] of this.states ) {
+
+				json.states.push( {
+					type: state.constructor.name,
+					id: id,
+					state: state.toJSON()
+				} );
+
+				statesMap.set( state, id );
+
+			}
+
+			json.currentState = statesMap.get( this.currentState ) || null;
+			json.previousState = statesMap.get( this.previousState ) || null;
+			json.globalState = statesMap.get( this.globalState ) || null;
+
+			return json;
+
+		}
+
+		/**
+		* Restores this instance from the given JSON object.
+		*
+		* @param {Object} json - The JSON object.
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		fromJSON( json ) {
+
+			this.owner = json.owner;
+
+			//
+
+			const statesJSON = json.states;
+
+			for ( let i = 0, l = statesJSON.length; i < l; i ++ ) {
+
+				const stateJSON = statesJSON[ i ];
+				const type = stateJSON.type;
+
+				const ctor = this._typesMap.get( type );
+
+				if ( ctor !== undefined ) {
+
+					const id = stateJSON.id;
+					const state = new ctor().fromJSON( stateJSON.state );
+
+					this.add( id, state );
+
+				} else {
+
+					Logger.warn( 'YUKA.StateMachine: Unsupported state type:', type );
+					continue;
+
+				}
+
+			}
+
+			//
+
+			this.currentState = ( json.currentState !== null ) ? ( this.get( json.currentState ) || null ) : null;
+			this.previousState = ( json.previousState !== null ) ? ( this.get( json.previousState ) || null ) : null;
+			this.globalState = ( json.globalState !== null ) ? ( this.get( json.globalState ) || null ) : null;
+
+			return this;
+
+		}
+
+		/**
+		* Restores UUIDs with references to GameEntity objects.
+		*
+		* @param {Map} entities - Maps game entities to UUIDs.
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		resolveReferences( entities ) {
+
+			this.owner = entities.get( this.owner ) || null;
+
+			for ( let state of this.states.values() ) {
+
+				state.resolveReferences( entities );
+
+			}
+
+			return this;
+
+		}
+
+		/**
+		* Registers a custom type for deserialization. When calling {@link StateMachine#fromJSON}
+		* the state machine is able to pick the correct constructor in order to create custom states.
+		*
+		* @param {String} type - The name of the state type.
+		* @param {Function} constructor - The constructor function.
+		* @return {StateMachine} A reference to this state machine.
+		*/
+		registerType( type, constructor ) {
+
+			this._typesMap.set( type, constructor );
+
+			return this;
+
+		}
+
+		//
+
+		_change( state ) {
+
+			this.previousState = this.currentState;
+
+			if ( this.currentState !== null ) {
+
+				this.currentState.exit( this.owner );
+
+			}
+
+			this.currentState = state;
+
+			this.currentState.enter( this.owner );
+
+		}
 
 	}
 
@@ -54988,6 +55788,443 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
+	const _acceleration = new Vector3$1();
+	const _brakingForce = new Vector3$1();
+	const _direction = new Vector3$1();
+	const _ut = new Vector3$1();
+	const _halfATSquared = new Vector3$1();
+
+	const _ray$3 = new Ray$1();
+	const _intersectionPoint$1 = new Vector3$1();
+
+	class Ball extends MovingEntity {
+
+		constructor( pitch ) {
+
+			super();
+
+			this.owner = null;
+			this.pitch = pitch;
+
+			this.mass = 0.44; // 440g
+			this.maxSpeed = 42; // 42 m/s ~ 150km/h
+
+			this.friction = - 1; // This value decreases the velocity of the ball over time.
+
+			// internals
+
+			this._previousPosition = new Vector3$1();
+
+		}
+
+		update( delta ) {
+
+			this._previousPosition.copy( this.position );
+
+			_brakingForce.copy( this.velocity ).normalize().multiplyScalar( this.friction );
+
+			_acceleration.copy( _brakingForce ).divideScalar( this.mass );
+
+			this.velocity.add( _acceleration.multiplyScalar( delta ) );
+
+			if ( this.getSpeedSquared() < 0.0001 ) {
+
+				this.velocity.set( 0, 0, 0 );
+
+			}
+
+			super.update( delta );
+
+			this._collisionDetection();
+
+		}
+
+		advance( delta, position ) {
+
+			// using the equation s = uΔt + 1/2 * aΔt^2
+
+			_ut.copy( this.velocity ).multiplyScalar( delta );
+
+			_direction.copy( this.velocity ).normalize();
+
+			_halfATSquared.copy( _direction ).multiplyScalar( 0.5 * this.friction * delta * delta );
+
+			return position.copy( this.position ).add( _ut ).add( _halfATSquared );
+
+		}
+
+		kick( force ) {
+
+			// For simplicity we do no use a physical correct model here:
+			//
+			// 1. The ball is assumed to have a zero velocity immediately prior to a kick.
+			// 2. The force and the resulting acceleration of a kick is applied in a single simulation step.
+			//    Hence, the lenght of the acceleration represents the new speed (and consequently the velocity) of the ball.
+
+			_acceleration.copy( force ).divideScalar( this.mass );
+
+			this.velocity.copy( _acceleration );
+
+			return this;
+
+		}
+
+		placeAt( position = new Vector3$1( 0, 0, 0 ) ) {
+
+			this.position.copy( position );
+			this.velocity.set( 0, 0, 0 );
+
+			return this;
+
+		}
+
+		timeToCoverDistance( startPosition, endPosition, force ) {
+
+			// Similar to kick(), we assume no accumulative velocities in this method. Meaning the following computation
+			// represents the speed of the ball if the player was to make the pass.
+			const speed = force / this.mass;
+
+			// Calculate the velocity at the end position using the equation: v^2 = u^2 + 2as.
+
+			const s = startPosition.distanceTo( endPosition ); // distance to cover
+
+			const term = ( speed * speed ) + ( 2 * this.friction * s );
+
+			// If (u^2 + 2as) is negative it means the ball cannot reach the end position.
+			if ( term <= 0.0 ) {
+
+				return - 1.0;
+
+			}
+
+			// It IS possible for the ball to reach its destination and we know its speed when it
+			// gets there, so now it's easy to calculate the time using the equation.
+			//
+			// t = ( v-u ) / a
+			//
+
+			return ( Math.sqrt( term ) - speed ) / this.friction;
+
+		}
+
+		trap() {
+
+			this.velocity.set( 0, 0, 0 );
+
+			return this;
+
+		}
+
+		_collisionDetection() {
+
+			const walls = this.pitch.walls;
+
+			_ray$3.origin.copy( this._previousPosition );
+			_ray$3.direction.subVectors( this.position, this._previousPosition ).normalize();
+
+			const d = this._previousPosition.squaredDistanceTo( this.position );
+
+			let closestDistance = Infinity;
+			let closestWall = null;
+
+			for ( let i = 0, l = walls.length; i < l; i ++ ) {
+
+				const wall = walls[ i ];
+
+				if ( _ray$3.intersectPlane( wall, _intersectionPoint$1 ) !== null ) {
+
+					const s = this._previousPosition.squaredDistanceTo( _intersectionPoint$1 );
+
+					if ( s <= d && s < closestDistance ) {
+
+						closestDistance = s;
+						closestWall = wall;
+
+					}
+
+				}
+
+			}
+
+			if ( closestWall !== null ) {
+
+				this.position.copy( this._previousPosition );
+				this.velocity.reflect( closestWall.normal );
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class Goal$1 extends GameEntity {
+
+		constructor( size = 0 ) {
+
+			super();
+
+			this.size = size;
+
+		}
+
+	}
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class Region {
+
+		constructor( x, y, width, height, id = 0 ) {
+
+			this.x = x;
+			this.y = y;
+
+			this.width = width;
+			this.height = height;
+
+			this.id = id;
+
+			this._left = x - ( width / 2 );
+			this._right = x + ( width / 2 );
+			this._top = y + ( height / 2 );
+			this._bottom = y - ( height / 2 );
+
+		}
+
+		getRandomPosition( position ) {
+
+			position.x = MathUtils$1.randFloat( this._left, this._right );
+			position.y = 0;
+			position.z = MathUtils$1.randFloat( this._bottom, this._top );
+
+			return position;
+
+		}
+
+		isInside( position, isHalfSize = false ) {
+
+			let marginX, marginY;
+
+			if ( isHalfSize === true ) {
+
+				marginX = this.width * 0.25;
+				marginY = this.height * 0.25;
+
+				return ( ( position.x > ( this._left + marginX ) ) &&
+					 ( position.x < ( this._right - marginX ) ) &&
+					 ( position.z > ( this._bottom + marginY ) ) &&
+					 ( position.z < ( this._top - marginY ) ) );
+
+			} else {
+
+				return ( ( position.x > this._left ) &&
+					 ( position.x < this._right ) &&
+					 ( position.z > this._bottom ) &&
+					 ( position.z < this._top ) );
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class Pitch extends GameEntity {
+
+		constructor( width, height ) {
+
+			super();
+
+			this.field = null;
+
+			this.walls = [
+				new Plane$1( new Vector3$1( 0, 0, - 1 ), 7.5 ), // top
+				new Plane$1( new Vector3$1( 0, 0, 1 ), 7.5 ), // bottom
+				new Plane$1( new Vector3$1( - 1, 0, 0 ), 10 ), // right (red goal)
+				new Plane$1( new Vector3$1( 1, 0, 0 ), 10 ), // left (blue goal)
+			];
+
+			this.isPlaying = false;
+			this.isGoalKeeperInBallPossession = false;
+
+			this.playingArea = new Region( this.position.x, this.position.z, width, height );
+
+			this.regionCountWidth = 6;
+			this.regionCountHeight = 3;
+
+			this.regions = [];
+			this._createRegions();
+
+		}
+
+		getRegionById( id ) {
+
+			return this.regions[ id ];
+
+		}
+
+		_createRegions() {
+
+			const playingArea = this.playingArea;
+
+			let id = 0;
+
+			const width = playingArea.width / this.regionCountWidth;
+			const height = playingArea.height / this.regionCountHeight;
+
+			for ( let col = 0; col < this.regionCountWidth; col ++ ) {
+
+				for ( let row = 0; row < this.regionCountHeight; row ++ ) {
+
+					const x = col * width + ( width / 2 ) - ( playingArea.width / 2 );
+					const y = row * height + ( height / 2 ) - ( playingArea.height / 2 );
+
+					this.regions[ id ] = new Region( x, y, width, height, id );
+
+					id ++;
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class Team extends GameEntity {
+
+		constructor( ball, pitch, homeGoal, opposingGoal ) {
+
+			super();
+
+			this.ball = ball;
+			this.pitch = pitch;
+			this.homeGoal = homeGoal;
+			this.opposingGoal = opposingGoal;
+
+			this.opposingTeam = null;
+
+			this.receivingPlayer = null;
+			this.playerClosestToBall = null;
+			this.controllingPlayer = null;
+			this.supportingPlayer = null;
+
+			this.stateMachine = new StateMachine( this );
+
+		}
+
+		update() {
+
+			this._computePlayerClosestToBall();
+
+			this.stateMachine.update();
+
+		}
+
+		inControl() {
+
+			return this.controllingPlayer !== null;
+
+		}
+
+		areAllPlayersAtHome() {
+
+			for ( let i = 0, l = this.children.length; i < l; i ++ ) {
+
+				const player = this.children[ i ];
+
+				if ( player.isInHomeRegion() === false ) {
+
+					return false;
+
+				}
+
+			}
+
+			return true;
+
+		}
+
+		isOpponentWithinRadius( player, radius ) {
+
+			const opponents = this.opposingTeam.children;
+			const squaredRadius = radius * radius;
+
+			for ( let i = 0, l = opponents.length; i < l; i ++ ) {
+
+				const opponent = opponents[ i ];
+
+				const distance = opponent.position.squaredDistanceTo( player.position );
+
+				if ( distance <= squaredRadius ) return true;
+
+			}
+
+			return false;
+
+		}
+
+		lostControl() {
+
+			this.controllingPlayer = null;
+			this.receivingPlayer = null;
+			this.supportingPlayer = null;
+
+		}
+
+		setControl( player ) {
+
+			this.controllingPlayer = player;
+
+			this.opposingTeam.lostControl();
+
+		}
+
+		//
+
+		_computePlayerClosestToBall() {
+
+			const ball = this.ball;
+			const players = this.children;
+
+			let closestDistance = Infinity;
+
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+				const player = players[ i ];
+
+				const distance = player.position.squaredDistanceTo( ball.position );
+
+				if ( distance < closestDistance ) {
+
+					closestDistance = distance;
+
+					this.playerClosestToBall = player;
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
 	class World {
 
 		constructor() {
@@ -55007,6 +56244,19 @@
 
 			//
 
+			this.ballMesh = null;
+			this.goalMesh = null;
+			this.pitchMesh = null;
+
+			//
+
+			this.pitchDimension = {
+				width: 20,
+				height: 15
+			};
+
+			//
+
 			this._requestID = null;
 
 			this._startAnimation = startAnimation.bind( this );
@@ -55017,15 +56267,17 @@
 
 		async init() {
 
-			this.assetManager = new AssetManager(); // creating the asset manager here to avoid a web audio context warning
+			this.assetManager = new AssetManager();
 
 			await this.assetManager.init();
 
 			this._initScene();
 
+			this._initGame();
+
 			this._startAnimation();
 
-			this.ui.startScreen.remove();
+			// this.ui.startScreen.remove();
 
 		}
 
@@ -55046,42 +56298,39 @@
 
 		_initScene() {
 
-			// camera
+			// rendering setup
 
 			this.camera = new PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 0.1, 200 );
-			this.camera.position.set( 0, 20, 20 );
-
-			// scene
+			this.camera.position.set( 0, 10, 20 );
 
 			this.scene = new Scene();
 			this.camera.lookAt( this.scene.position );
-
-			// lights
 
 			const ambientLight = new AmbientLight( 0xcccccc, 0.4 );
 			ambientLight.matrixAutoUpdate = false;
 			this.scene.add( ambientLight );
 
 			const dirLight = new DirectionalLight( 0xffffff, 0.6 );
-			dirLight.position.set( 1, 10, - 1 );
+			dirLight.position.set( 0, 20, 0 );
 			dirLight.matrixAutoUpdate = false;
 			dirLight.updateMatrix();
+			dirLight.castShadow = true;
+			dirLight.shadow.camera.top = 10;
+			dirLight.shadow.camera.bottom = - 10;
+			dirLight.shadow.camera.left = - 10;
+			dirLight.shadow.camera.right = 10;
+			dirLight.shadow.camera.near = 1;
+			dirLight.shadow.camera.far = 25;
+			dirLight.shadow.mapSize.x = 2048;
+			dirLight.shadow.mapSize.y = 2048;
+			dirLight.shadow.bias = 0.01;
 			this.scene.add( dirLight );
 
-			// this.scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
+			// this.scene.add( new CameraHelper( dirLight.shadow.camera ) );
 
-			// field
-
-			const fieldGeometry = new PlaneBufferGeometry( 20, 15 );
-			const fieldMaterial = new MeshLambertMaterial( { color: 0x00ff00 } );
-
-			this.fieldMesh = new Mesh( fieldGeometry, fieldMaterial );
-			this.fieldMesh.matrixAutoUpdate = false;
-			this.fieldMesh.rotation.x = Math.PI * - 0.5;
-			this.fieldMesh.updateMatrix();
-			this.scene.add( this.fieldMesh );
-
-			// renderer
+			const helper = new AxesHelper( 10 );
+			helper.position.y = 0.1;
+			this.scene.add( helper );
 
 			this.renderer = new WebGLRenderer( { antialias: true } );
 			this.renderer.setSize( window.innerWidth, window.innerHeight );
@@ -55090,9 +56339,147 @@
 			this.renderer.shadowMap.type = PCFSoftShadowMap;
 			document.body.appendChild( this.renderer.domElement );
 
-			// listeners
-
 			window.addEventListener( 'resize', this._onWindowResize, false );
+
+			// render components
+
+			const radius = 0.1;
+
+			const ballGeometry = new SphereBufferGeometry( radius, 16, 16 );
+			ballGeometry.translate( 0, radius, 0 );
+			const ballMaterial = new MeshPhongMaterial( { color: 0xffffff } );
+
+			this.ballMesh = new Mesh( ballGeometry, ballMaterial );
+			this.ballMesh.castShadow = true;
+			this.ballMesh.matrixAutoUpdate = false;
+
+			//
+
+			const pitchGeometry = new PlaneBufferGeometry( this.pitchDimension.width, this.pitchDimension.height );
+			pitchGeometry.rotateX( Math.PI * - 0.5 );
+			const pitchMaterial = new MeshPhongMaterial( { color: 0x00ff00 } );
+
+			this.pitchMesh = new Mesh( pitchGeometry, pitchMaterial );
+			this.pitchMesh.receiveShadow = true;
+			this.pitchMesh.matrixAutoUpdate = false;
+
+			//
+
+			const goalGeometry = new PlaneBufferGeometry( 2, 1 );
+			goalGeometry.rotateY( Math.PI * - 0.5 );
+			goalGeometry.translate( 0, 0.5, 0 );
+			const goalMaterial = new MeshPhongMaterial( { color: 0xffff00 } );
+
+			this.goalMesh = new Mesh( goalGeometry, goalMaterial );
+			this.goalMesh.matrixAutoUpdate = false;
+
+		}
+
+		_initGame() {
+
+			const goalRed = this._createGoal();
+			goalRed.position.x = 10;
+			this.entityManager.add( goalRed );
+			this.scene.add( goalRed._renderComponent );
+
+			const goalBlue = this._createGoal();
+			goalBlue.position.x = - 10;
+			goalBlue.rotation.fromEuler( 0, Math.PI, 0 );
+			this.entityManager.add( goalBlue );
+			this.scene.add( goalBlue._renderComponent );
+
+			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
+			this.entityManager.add( pitch );
+			this.scene.add( pitch._renderComponent );
+
+			const ball = this._createBall( pitch );
+			this.entityManager.add( ball );
+			this.scene.add( ball._renderComponent );
+
+			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue );
+			this.entityManager.add( teamRed );
+
+			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed );
+			this.entityManager.add( teamBlue );
+
+			teamRed.opposingTeam = teamBlue;
+			teamBlue.opposingTeam = teamRed;
+
+			//this._debugPitch( pitch );
+
+		}
+
+		_createBall( pitch ) {
+
+			const ball = new Ball( pitch );
+			const ballMesh = this.ballMesh.clone();
+			ball.setRenderComponent( ballMesh, sync );
+
+			return ball;
+
+		}
+
+		_createGoal() {
+
+			const goal = new Goal$1();
+			const goalMesh = this.goalMesh.clone();
+			goal.setRenderComponent( goalMesh, sync );
+
+			return goal;
+
+		}
+
+		_createPitch( width, height ) {
+
+			const pitch = new Pitch( width, height );
+			const pitchMesh = this.pitchMesh.clone();
+			pitch.setRenderComponent( pitchMesh, sync );
+
+			return pitch;
+
+		}
+
+		_createTeam( ball ) {
+
+			const team = new Team( ball );
+			return team;
+
+		}
+
+		_debugPitch( pitch ) {
+
+			// regions
+
+			const regions = pitch.regions;
+
+			for ( let i = 0, l = regions.length; i < l; i ++ ) {
+
+				const region = regions[ i ];
+
+				const geometry = new PlaneBufferGeometry( region.width, region.height );
+				const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), polygonOffset: true, polygonOffsetFactor: - 4, } );
+				const mesh = new Mesh( geometry, material );
+
+				mesh.position.set( region.x, 0, region.y );
+				mesh.rotation.x = Math.PI * - 0.5;
+
+				this.scene.add( mesh );
+
+			}
+
+			// walls
+
+			const walls = pitch.walls;
+
+			for ( let i = 0, l = walls.length; i < l; i ++ ) {
+
+				const wall = walls[ i ];
+				wall.normal.isVector3 = true;
+
+				const helper = new PlaneHelper( wall, ( i < 2 ) ? 20 : 15 );
+				this.scene.add( helper );
+
+			}
 
 		}
 
@@ -55121,17 +56508,24 @@
 
 	}
 
+	function sync( entity, renderComponent ) {
+
+		renderComponent.matrix.copy( entity.worldMatrix );
+
+	}
+
 	var world = new World();
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
-	const startButton = document.getElementById( 'start-screen-start' );
-	startButton.addEventListener( 'click', () => {
+	// const startButton = document.getElementById( 'start-screen-start' );
+	// startButton.addEventListener( 'click', () => {
 
-		world.init();
+	// 	world.init();
 
-	} );
+	// } );
+	world.init();
 
 })));

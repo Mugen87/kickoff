@@ -24,4 +24,4 @@ class AssetManager {
 
 }
 
-export { AssetManager };
+export default AssetManager;
