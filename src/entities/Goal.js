@@ -6,11 +6,12 @@ import { GameEntity } from 'yuka';
 
 class Goal extends GameEntity {
 
-	constructor( size = 0 ) {
+	constructor( width = 0, height = 0 ) {
 
 		super();
 
-		this.size = size;
+		this.width = width;
+		this.height = height;
 
 	}
 

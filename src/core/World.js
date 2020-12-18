@@ -2,14 +2,14 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-import { Mesh, Scene, PerspectiveCamera, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper } from 'three';
+import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture } from 'three';
 import { EntityManager, Time } from 'yuka';
 
 import AssetManager from './AssetManager.js';
 import Ball from '../entities/Ball.js';
 import Goal from '../entities/Goal.js';
 import Pitch from '../entities/Pitch.js';
-import Team from '../entities/Team.js';
+import { Team, COLOR } from '../entities/Team.js';
 
 class World {
 
@@ -33,12 +33,19 @@ class World {
 		this.ballMesh = null;
 		this.goalMesh = null;
 		this.pitchMesh = null;
+		this.teamRedMesh = null;
+		this.teamBlueMesh = null;
 
 		//
 
 		this.pitchDimension = {
 			width: 20,
 			height: 15
+		};
+
+		this.goalDimensions = {
+			width: 2,
+			height: 1
 		};
 
 		//
@@ -151,7 +158,7 @@ class World {
 
 		//
 
-		const goalGeometry = new PlaneBufferGeometry( 2, 1 );
+		const goalGeometry = new PlaneBufferGeometry( this.goalDimensions.width, this.goalDimensions.height );
 		goalGeometry.rotateY( Math.PI * - 0.5 );
 		goalGeometry.translate( 0, 0.5, 0 );
 		const goalMaterial = new MeshPhongMaterial( { color: 0xffff00 } );
@@ -159,39 +166,61 @@ class World {
 		this.goalMesh = new Mesh( goalGeometry, goalMaterial );
 		this.goalMesh.matrixAutoUpdate = false;
 
+		//
+
+		const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 1, 16 );
+		const headGeometry = new ConeBufferGeometry( 0.2, 0.2, 16 );
+		headGeometry.rotateX( Math.PI * 0.5 );
+		headGeometry.translate( 0, 0.3, 0.3 );
+
+		const teamRedMaterial = new MeshPhongMaterial( { color: 0xff0000 } );
+		const teamBlueMaterial = new MeshPhongMaterial( { color: 0x0000ff } );
+
+		this.teamRedMesh = new Mesh( bodyGeometry, teamRedMaterial );
+		this.teamRedMesh.matrixAutoUpdate = false;
+		this.teamBlueMesh = new Mesh( bodyGeometry, teamBlueMaterial );
+		this.teamBlueMesh.matrixAutoUpdate = false;
+
+		const coneRed = new Mesh( headGeometry, teamRedMaterial );
+		coneRed.matrixAutoUpdate = false;
+		const coneBlue = new Mesh( headGeometry, teamBlueMaterial );
+		coneBlue.matrixAutoUpdate = false;
+
+		this.teamRedMesh.add( coneRed );
+		this.teamBlueMesh.add( coneBlue );
+
 	}
 
 	_initGame() {
 
-		const goalRed = this._createGoal();
+		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height );
 		goalRed.position.x = 10;
 		this.entityManager.add( goalRed );
-		this.scene.add( goalRed._renderComponent );
 
-		const goalBlue = this._createGoal();
+		const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height );
 		goalBlue.position.x = - 10;
 		goalBlue.rotation.fromEuler( 0, Math.PI, 0 );
 		this.entityManager.add( goalBlue );
-		this.scene.add( goalBlue._renderComponent );
 
 		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
 		this.entityManager.add( pitch );
-		this.scene.add( pitch._renderComponent );
 
 		const ball = this._createBall( pitch );
 		this.entityManager.add( ball );
-		this.scene.add( ball._renderComponent );
 
-		const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue );
+		const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, COLOR.RED );
 		this.entityManager.add( teamRed );
 
-		const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed );
+		const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, COLOR.BLUE );
 		this.entityManager.add( teamBlue );
 
 		teamRed.opposingTeam = teamBlue;
 		teamBlue.opposingTeam = teamRed;
 
-		//this._debugPitch( pitch );
+		teamRed.setupTeamPositions();
+		teamBlue.setupTeamPositions();
+
+		this._debugPitch( pitch );
 
 	}
 
@@ -201,15 +230,19 @@ class World {
 		const ballMesh = this.ballMesh.clone();
 		ball.setRenderComponent( ballMesh, sync );
 
+		this.scene.add( ballMesh );
+
 		return ball;
 
 	}
 
-	_createGoal() {
+	_createGoal( width, height ) {
 
-		const goal = new Goal();
+		const goal = new Goal( width, height );
 		const goalMesh = this.goalMesh.clone();
 		goal.setRenderComponent( goalMesh, sync );
+
+		this.scene.add( goalMesh );
 
 		return goal;
 
@@ -221,13 +254,27 @@ class World {
 		const pitchMesh = this.pitchMesh.clone();
 		pitch.setRenderComponent( pitchMesh, sync );
 
+		this.scene.add( pitchMesh );
+
 		return pitch;
 
 	}
 
-	_createTeam( ball ) {
+	_createTeam( ball, pitch, homeGoal, opposingGoal, color ) {
 
-		const team = new Team( ball );
+		const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
+
+		const baseMesh = ( color === COLOR.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+
+		for ( let i = 0, l = team.children.length; i < l; i ++ ) {
+
+			const player = team.children[ i ];
+			const playerMesh = baseMesh.clone();
+			player.setRenderComponent( playerMesh, sync );
+			this.scene.add( playerMesh );
+
+		}
+
 		return team;
 
 	}
@@ -242,8 +289,23 @@ class World {
 
 			const region = regions[ i ];
 
+			const canvas = document.createElement( 'canvas' );
+			const context = canvas.getContext( '2d' );
+
+			canvas.width = 128;
+			canvas.height = 128;
+
+			context.fillStyle = '#ffffff';
+			context.fillRect( 0, 0, canvas.width, canvas.height );
+
+			context.fillStyle = "#000000";
+			context.font = '24px Arial';
+			context.textAlign = 'center';
+			context.textBaseline = 'middle';
+			context.fillText( `ID: ${i}`, canvas.width / 2, canvas.height / 2 );
+
 			const geometry = new PlaneBufferGeometry( region.width, region.height );
-			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), polygonOffset: true, polygonOffsetFactor: - 4, } );
+			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
 			const mesh = new Mesh( geometry, material );
 
 			mesh.position.set( region.x, 0, region.y );

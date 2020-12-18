@@ -28725,6 +28725,290 @@
 
 	} );
 
+	class CylinderBufferGeometry extends BufferGeometry {
+
+		constructor( radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 8, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2 ) {
+
+			super();
+			this.type = 'CylinderBufferGeometry';
+
+			this.parameters = {
+				radiusTop: radiusTop,
+				radiusBottom: radiusBottom,
+				height: height,
+				radialSegments: radialSegments,
+				heightSegments: heightSegments,
+				openEnded: openEnded,
+				thetaStart: thetaStart,
+				thetaLength: thetaLength
+			};
+
+			const scope = this;
+
+			radialSegments = Math.floor( radialSegments );
+			heightSegments = Math.floor( heightSegments );
+
+			// buffers
+
+			const indices = [];
+			const vertices = [];
+			const normals = [];
+			const uvs = [];
+
+			// helper variables
+
+			let index = 0;
+			const indexArray = [];
+			const halfHeight = height / 2;
+			let groupStart = 0;
+
+			// generate geometry
+
+			generateTorso();
+
+			if ( openEnded === false ) {
+
+				if ( radiusTop > 0 ) generateCap( true );
+				if ( radiusBottom > 0 ) generateCap( false );
+
+			}
+
+			// build geometry
+
+			this.setIndex( indices );
+			this.setAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
+			this.setAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
+			this.setAttribute( 'uv', new Float32BufferAttribute( uvs, 2 ) );
+
+			function generateTorso() {
+
+				const normal = new Vector3();
+				const vertex = new Vector3();
+
+				let groupCount = 0;
+
+				// this will be used to calculate the normal
+				const slope = ( radiusBottom - radiusTop ) / height;
+
+				// generate vertices, normals and uvs
+
+				for ( let y = 0; y <= heightSegments; y ++ ) {
+
+					const indexRow = [];
+
+					const v = y / heightSegments;
+
+					// calculate the radius of the current row
+
+					const radius = v * ( radiusBottom - radiusTop ) + radiusTop;
+
+					for ( let x = 0; x <= radialSegments; x ++ ) {
+
+						const u = x / radialSegments;
+
+						const theta = u * thetaLength + thetaStart;
+
+						const sinTheta = Math.sin( theta );
+						const cosTheta = Math.cos( theta );
+
+						// vertex
+
+						vertex.x = radius * sinTheta;
+						vertex.y = - v * height + halfHeight;
+						vertex.z = radius * cosTheta;
+						vertices.push( vertex.x, vertex.y, vertex.z );
+
+						// normal
+
+						normal.set( sinTheta, slope, cosTheta ).normalize();
+						normals.push( normal.x, normal.y, normal.z );
+
+						// uv
+
+						uvs.push( u, 1 - v );
+
+						// save index of vertex in respective row
+
+						indexRow.push( index ++ );
+
+					}
+
+					// now save vertices of the row in our index array
+
+					indexArray.push( indexRow );
+
+				}
+
+				// generate indices
+
+				for ( let x = 0; x < radialSegments; x ++ ) {
+
+					for ( let y = 0; y < heightSegments; y ++ ) {
+
+						// we use the index array to access the correct indices
+
+						const a = indexArray[ y ][ x ];
+						const b = indexArray[ y + 1 ][ x ];
+						const c = indexArray[ y + 1 ][ x + 1 ];
+						const d = indexArray[ y ][ x + 1 ];
+
+						// faces
+
+						indices.push( a, b, d );
+						indices.push( b, c, d );
+
+						// update group counter
+
+						groupCount += 6;
+
+					}
+
+				}
+
+				// add a group to the geometry. this will ensure multi material support
+
+				scope.addGroup( groupStart, groupCount, 0 );
+
+				// calculate new start value for groups
+
+				groupStart += groupCount;
+
+			}
+
+			function generateCap( top ) {
+
+				// save the index of the first center vertex
+				const centerIndexStart = index;
+
+				const uv = new Vector2();
+				const vertex = new Vector3();
+
+				let groupCount = 0;
+
+				const radius = ( top === true ) ? radiusTop : radiusBottom;
+				const sign = ( top === true ) ? 1 : - 1;
+
+				// first we generate the center vertex data of the cap.
+				// because the geometry needs one set of uvs per face,
+				// we must generate a center vertex per face/segment
+
+				for ( let x = 1; x <= radialSegments; x ++ ) {
+
+					// vertex
+
+					vertices.push( 0, halfHeight * sign, 0 );
+
+					// normal
+
+					normals.push( 0, sign, 0 );
+
+					// uv
+
+					uvs.push( 0.5, 0.5 );
+
+					// increase index
+
+					index ++;
+
+				}
+
+				// save the index of the last center vertex
+				const centerIndexEnd = index;
+
+				// now we generate the surrounding vertices, normals and uvs
+
+				for ( let x = 0; x <= radialSegments; x ++ ) {
+
+					const u = x / radialSegments;
+					const theta = u * thetaLength + thetaStart;
+
+					const cosTheta = Math.cos( theta );
+					const sinTheta = Math.sin( theta );
+
+					// vertex
+
+					vertex.x = radius * sinTheta;
+					vertex.y = halfHeight * sign;
+					vertex.z = radius * cosTheta;
+					vertices.push( vertex.x, vertex.y, vertex.z );
+
+					// normal
+
+					normals.push( 0, sign, 0 );
+
+					// uv
+
+					uv.x = ( cosTheta * 0.5 ) + 0.5;
+					uv.y = ( sinTheta * 0.5 * sign ) + 0.5;
+					uvs.push( uv.x, uv.y );
+
+					// increase index
+
+					index ++;
+
+				}
+
+				// generate indices
+
+				for ( let x = 0; x < radialSegments; x ++ ) {
+
+					const c = centerIndexStart + x;
+					const i = centerIndexEnd + x;
+
+					if ( top === true ) {
+
+						// face top
+
+						indices.push( i, i + 1, c );
+
+					} else {
+
+						// face bottom
+
+						indices.push( i + 1, i, c );
+
+					}
+
+					groupCount += 3;
+
+				}
+
+				// add a group to the geometry. this will ensure multi material support
+
+				scope.addGroup( groupStart, groupCount, top === true ? 1 : 2 );
+
+				// calculate new start value for groups
+
+				groupStart += groupCount;
+
+			}
+
+		}
+
+	}
+
+	class ConeBufferGeometry extends CylinderBufferGeometry {
+
+		constructor( radius = 1, height = 1, radialSegments = 8, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2 ) {
+
+			super( 0, radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength );
+
+			this.type = 'ConeBufferGeometry';
+
+			this.parameters = {
+				radius: radius,
+				height: height,
+				radialSegments: radialSegments,
+				heightSegments: heightSegments,
+				openEnded: openEnded,
+				thetaStart: thetaStart,
+				thetaLength: thetaLength
+			};
+
+		}
+
+	}
+
 	const _v0$2 = new Vector3();
 	const _v1$5 = new Vector3();
 	const _normal$1 = new Vector3();
@@ -53504,6 +53788,59 @@
 	}
 
 	/**
+	* Not all components of an AI system need to be updated in each simulation step.
+	* This class can be used to control the update process by defining how many updates
+	* should be executed per second.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
+	class Regulator {
+
+		/**
+		* Constructs a new regulator.
+		*
+		* @param {Number} updateFrequency - The amount of updates per second.
+		*/
+		constructor( updateFrequency = 0 ) {
+
+			/**
+			* The amount of updates per second.
+			* @type Number
+			* @default 0
+			*/
+			this.updateFrequency = updateFrequency;
+
+			this._time = new Time();
+			this._nextUpdateTime = 0;
+
+		}
+
+		/**
+		* Returns true if it is time to allow the next update.
+		*
+		* @return {Boolean} Whether an update is allowed or not.
+		*/
+		ready() {
+
+			this._time.update();
+
+			const elapsedTime = this._time.getElapsed();
+
+			if ( elapsedTime >= this._nextUpdateTime ) {
+
+				this._nextUpdateTime = elapsedTime + ( 1 / this.updateFrequency );
+
+				return true;
+
+			}
+
+			return false;
+
+		}
+
+	}
+
+	/**
 	* Base class for representing a state in context of State-driven agent design.
 	*
 	* @author {@link https://github.com/Mugen87|Mugen87}
@@ -55963,11 +56300,12 @@
 
 	class Goal$1 extends GameEntity {
 
-		constructor( size = 0 ) {
+		constructor( width = 0, height = 0 ) {
 
 			super();
 
-			this.size = size;
+			this.width = width;
+			this.height = height;
 
 		}
 
@@ -56103,12 +56441,329 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
-	class Team extends GameEntity {
+	const _quaterion = new Quaternion$1();
+	const _displacement = new Vector3$1();
+	const _direction$1 = new Vector3$1();
+	const _toPosition = new Vector3$1();
 
-		constructor( ball, pitch, homeGoal, opposingGoal ) {
+	class Player extends Vehicle {
+
+		constructor( role, team, pitch ) {
 
 			super();
 
+			this.role = role;
+
+			this.team = team;
+			this.pitch = pitch;
+
+			this.homeRegionId = - 1;
+			this.defaultRegionId = - 1;
+
+			// Must be in the range [0,1]. Adjusts the amount of noise added to a kick.
+			// The lower the value the worse the player gets.
+
+			this.accuracy = 1;
+
+			this.stateMachine = new StateMachine( this );
+
+			this.target = new Vector3$1();
+
+		}
+
+		handleMessage( telegram ) {
+
+			return this.stateMachine.handleMessage( telegram );
+
+		}
+
+		addNoise( target ) {
+
+			const displacement = ( Math.PI - Math.PI * this.accuracy ) * MathUtils$1.randFloat( - 1, 1 );
+
+			_quaterion.fromEuler( 0, displacement, 0 );
+
+			_displacement.subVectors( target, this.position ).applyRotation( _quaterion );
+
+			return target.addVectors( _displacement, this.position );
+
+		}
+
+		getDistanceToHomeGoal() {
+
+			const goal = this.team.homeGoal;
+
+			return this.position.distanceTo( goal.position );
+
+		}
+
+		getDistanceToOpposingGoal() {
+
+			const goal = this.team.opposingGoal;
+
+			return this.position.distanceTo( goal.position );
+
+		}
+
+		isAheadOfAttacker() {
+
+			const team = this.team;
+
+			if ( team.inControl() ) {
+
+				return this.getDistanceToOpposingGoal() < team.controllingPlayer.getDistanceToOpposingGoal();
+
+			} else {
+
+				return false;
+
+			}
+
+		}
+
+		isAtTarget() {
+
+			return this.position.squaredDistanceTo( this.target ) < PLAYER_IN_TARGET_RANGE_SQ;
+
+		}
+
+		isBallWithinKeeperRange() {
+
+			const ball = this.team.ball;
+
+			return this.position.squaredDistanceTo( ball.position ) < KEEPER_IN_TARGET_RANGE_SQ;
+
+		}
+
+		isBallWithinKickingRange() {
+
+			const ball = this.team.ball;
+
+			return this.position.squaredDistanceTo( ball.position ) < PLAYER_KICKING_DISTANCE_SQ;
+
+		}
+
+		isBallWithinReceivingRange() {
+
+			const ball = this.team.ball;
+
+			return this.position.squaredDistanceTo( ball.position ) < PLAYER_RECEIVING_RANGE_SQ;
+
+		}
+
+		isClosestTeamMemberToBall() {
+
+			return this === this.team.playerClosestToBall;
+
+		}
+
+		isClosestPlayerOnPitchToBall() {
+
+			if ( this.isClosestTeamMemberToBall() ) {
+
+				const ball = this.team.ball;
+				const opponentClosestToBall = this.team.opposingTeam.playerClosestToBall;
+
+				return ( this.position.squaredDistanceTo( ball.position ) < opponentClosestToBall.position.squaredDistanceTo( ball.position ) );
+
+			} else {
+
+				return false;
+
+			}
+
+		}
+
+		isControllingPlayer() {
+
+			return ( this === this.team.controllingPlayer );
+
+		}
+
+		isPositionInFrontOfPlayer( position ) {
+
+			this.getDirection( _direction$1 );
+
+			_toPosition.subVectors( position, this.position );
+
+			return _direction$1.dot( _toPosition ) >= 0;
+
+		}
+
+		isInHomeRegion() {
+
+			const homeRegion = this.getHomeRegion();
+
+			// the home region check if more restrictive for field players
+
+			return homeRegion.isInside( this.position, ( this.role !== ROLE.GOALKEEPER ) );
+
+		}
+
+		isInHotRegion() {
+
+			return this.getDistanceToOpposingGoal() < ( this.pitch.playingArea.width / 3 );
+
+		}
+
+		isThreatened() {
+
+			const opponents = this.team.opposingTeam.children;
+
+			for ( let i = 0, l = opponents.length; i < l; i ++ ) {
+
+				const opponent = opponents[ i ];
+
+				if ( this.isPositionInFrontOfPlayer( opponent.position ) && this.position.squaredDistanceTo( opponent.position ) < PLAYER_COMFORT_ZONE_SQ ) {
+
+					return true;
+
+				}
+
+			}
+
+			return false;
+
+		}
+
+		getHomeRegion() {
+
+			return this.pitch.getRegionById( this.homeRegionId );
+
+		}
+
+		setDefaultHomeRegion() {
+
+			this.homeRegionId = this.defaultRegionId;
+
+		}
+
+	}
+
+	const ROLE = {
+		GOALKEEPER: 0,
+		ATTACKER: 1,
+		DEFENDER: 2
+	};
+
+	// the goalkeeper has to be this close to the ball to be able to interact with it
+	const KEEPER_IN_TARGET_RANGE = 0.5;
+
+	// when an opponents comes within this range the player will attempt to pass
+	// the ball. Players tend to pass more often, the higher the value
+	const PLAYER_COMFORT_ZONE = 2;
+
+	// the player has to be this close to the ball to be able to interact with it
+	const PLAYER_IN_TARGET_RANGE = 0.5;
+
+	// player has to be this close to the ball to be able to kick it. The higher
+	// the value this gets, the easier it gets to tackle.
+	const PLAYER_KICKING_DISTANCE = 0.3;
+
+	// how close the ball must be to a receiver before he starts chasing it
+	const PLAYER_RECEIVING_RANGE = 0.5;
+
+	// compute some constants in squared space
+	const KEEPER_IN_TARGET_RANGE_SQ = KEEPER_IN_TARGET_RANGE * KEEPER_IN_TARGET_RANGE;
+	const PLAYER_COMFORT_ZONE_SQ = PLAYER_COMFORT_ZONE * PLAYER_COMFORT_ZONE;
+	const PLAYER_IN_TARGET_RANGE_SQ = PLAYER_IN_TARGET_RANGE * PLAYER_IN_TARGET_RANGE;
+	const PLAYER_KICKING_DISTANCE_SQ = PLAYER_KICKING_DISTANCE * PLAYER_KICKING_DISTANCE;
+	const PLAYER_RECEIVING_RANGE_SQ = PLAYER_RECEIVING_RANGE * PLAYER_RECEIVING_RANGE;
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class FieldPlayer extends Player {
+
+		constructor( role, team, pitch ) {
+
+			super( role, team, pitch );
+
+			this._kickRegulator = new Regulator( PLAYER_KICK_FREQUENCY );
+
+		}
+
+		isReadyForNextKick() {
+
+			return this._kickLimiter.ready();
+
+		}
+
+	}
+
+	// the number of times a player can kick the ball per second
+	const PLAYER_KICK_FREQUENCY = 1;
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class Goalkeeper extends Player {
+
+		constructor( team, pitch ) {
+
+			super( ROLE.GOALKEEPER, team, pitch );
+
+		}
+
+		isBallWithinRangeForIntercept() {
+
+			const ball = this.team.ball;
+			const goal = this.team.homeGoal;
+
+			return goal.squaredDistanceTo( ball.position ) <= KEEPER_INTERCEPT_RANGE_SQ;
+
+		}
+
+		isTooFarFromGoalMouth() {
+
+			return this.position.squaredDistanceTo( this.getRearInterposeTarget() ) > KEEPER_INTERCEPT_RANGE_SQ;
+
+		}
+
+		/**
+		 * This method is called by the "interpose" state to determine the spot
+		 * along the goalmouth which will act as one of the interpose targets
+		 * (the other is the ball). The specific point at the goal line that
+		 * the keeper is trying to cover is flexible and can move depending on
+		 * where the ball is on the field. To achieve this we just scale the
+		 * ball's z value by the ratio of the goal width to playing field height.
+		 *
+		 * @returns {Vector3} The interpose target.
+		 */
+		getRearInterposeTarget() {
+
+			const target = new Vector3$1();
+
+			const pitch = this.pitch;
+			const ball = this.team.ball;
+			const goal = this.team.homeGoal;
+
+			target.x = goal.position.x;
+			target.z = ball.position.z * ( goal.width / pitch.playingArea.height );
+
+			return target;
+
+		}
+
+	}
+
+	// when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+	const KEEPER_INTERCEPT_RANGE = 3;
+	const KEEPER_INTERCEPT_RANGE_SQ = KEEPER_INTERCEPT_RANGE * KEEPER_INTERCEPT_RANGE;
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	class Team extends GameEntity {
+
+		constructor( color, ball, pitch, homeGoal, opposingGoal ) {
+
+			super();
+
+			this.color = color;
 			this.ball = ball;
 			this.pitch = pitch;
 			this.homeGoal = homeGoal;
@@ -56122,6 +56777,8 @@
 			this.supportingPlayer = null;
 
 			this.stateMachine = new StateMachine( this );
+
+			this._createPlayers();
 
 		}
 
@@ -56192,7 +56849,64 @@
 
 		}
 
+		setupTeamPositions() {
+
+			let regions;
+			const players = this.children;
+
+			if ( this.color === COLOR.RED ) {
+
+				regions = redDefendingRegions;
+
+			} else {
+
+				regions = blueDefendingRegions;
+
+			}
+
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+				const player = players[ i ];
+				const regionId = regions[ i ];
+
+				player.homeRegionId = regionId;
+
+				const region = this.pitch.getRegionById( regionId );
+				player.position.x = region.x;
+				player.position.z = region.y;
+
+			}
+
+		}
+
 		//
+
+		_createPlayers() {
+
+			let rotation = Math.PI * 0.5;
+			rotation *= ( this.color === COLOR.RED ) ? - 1 : 1;
+
+			const goalkeeper = new Goalkeeper( this, this.pitch );
+			goalkeeper.rotation.fromEuler( 0, rotation, 0 );
+			this.add( goalkeeper );
+
+			const fieldplayer1 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+			fieldplayer1.rotation.fromEuler( 0, rotation, 0 );
+			this.add( fieldplayer1 );
+
+			const fieldplayer2 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+			fieldplayer2.rotation.fromEuler( 0, rotation, 0 );
+			this.add( fieldplayer2 );
+
+			const fieldplayer3 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+			fieldplayer3.rotation.fromEuler( 0, rotation, 0 );
+			this.add( fieldplayer3 );
+
+			const fieldplayer4 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+			fieldplayer4.rotation.fromEuler( 0, rotation, 0 );
+			this.add( fieldplayer4 );
+
+		}
 
 		_computePlayerClosestToBall() {
 
@@ -56221,6 +56935,18 @@
 
 	}
 
+	// these define the home regions for this state of each of the players
+	// const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
+	// const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
+
+	const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
+	const redDefendingRegions = [ 16, 9, 11, 12, 14 ];
+
+	const COLOR = {
+		RED: 0,
+		BLUE: 1
+	};
+
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
@@ -56247,12 +56973,19 @@
 			this.ballMesh = null;
 			this.goalMesh = null;
 			this.pitchMesh = null;
+			this.teamRedMesh = null;
+			this.teamBlueMesh = null;
 
 			//
 
 			this.pitchDimension = {
 				width: 20,
 				height: 15
+			};
+
+			this.goalDimensions = {
+				width: 2,
+				height: 1
 			};
 
 			//
@@ -56365,7 +57098,7 @@
 
 			//
 
-			const goalGeometry = new PlaneBufferGeometry( 2, 1 );
+			const goalGeometry = new PlaneBufferGeometry( this.goalDimensions.width, this.goalDimensions.height );
 			goalGeometry.rotateY( Math.PI * - 0.5 );
 			goalGeometry.translate( 0, 0.5, 0 );
 			const goalMaterial = new MeshPhongMaterial( { color: 0xffff00 } );
@@ -56373,39 +57106,61 @@
 			this.goalMesh = new Mesh( goalGeometry, goalMaterial );
 			this.goalMesh.matrixAutoUpdate = false;
 
+			//
+
+			const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 1, 16 );
+			const headGeometry = new ConeBufferGeometry( 0.2, 0.2, 16 );
+			headGeometry.rotateX( Math.PI * 0.5 );
+			headGeometry.translate( 0, 0.3, 0.3 );
+
+			const teamRedMaterial = new MeshPhongMaterial( { color: 0xff0000 } );
+			const teamBlueMaterial = new MeshPhongMaterial( { color: 0x0000ff } );
+
+			this.teamRedMesh = new Mesh( bodyGeometry, teamRedMaterial );
+			this.teamRedMesh.matrixAutoUpdate = false;
+			this.teamBlueMesh = new Mesh( bodyGeometry, teamBlueMaterial );
+			this.teamBlueMesh.matrixAutoUpdate = false;
+
+			const coneRed = new Mesh( headGeometry, teamRedMaterial );
+			coneRed.matrixAutoUpdate = false;
+			const coneBlue = new Mesh( headGeometry, teamBlueMaterial );
+			coneBlue.matrixAutoUpdate = false;
+
+			this.teamRedMesh.add( coneRed );
+			this.teamBlueMesh.add( coneBlue );
+
 		}
 
 		_initGame() {
 
-			const goalRed = this._createGoal();
+			const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height );
 			goalRed.position.x = 10;
 			this.entityManager.add( goalRed );
-			this.scene.add( goalRed._renderComponent );
 
-			const goalBlue = this._createGoal();
+			const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height );
 			goalBlue.position.x = - 10;
 			goalBlue.rotation.fromEuler( 0, Math.PI, 0 );
 			this.entityManager.add( goalBlue );
-			this.scene.add( goalBlue._renderComponent );
 
 			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
 			this.entityManager.add( pitch );
-			this.scene.add( pitch._renderComponent );
 
 			const ball = this._createBall( pitch );
 			this.entityManager.add( ball );
-			this.scene.add( ball._renderComponent );
 
-			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue );
+			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, COLOR.RED );
 			this.entityManager.add( teamRed );
 
-			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed );
+			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, COLOR.BLUE );
 			this.entityManager.add( teamBlue );
 
 			teamRed.opposingTeam = teamBlue;
 			teamBlue.opposingTeam = teamRed;
 
-			//this._debugPitch( pitch );
+			teamRed.setupTeamPositions();
+			teamBlue.setupTeamPositions();
+
+			this._debugPitch( pitch );
 
 		}
 
@@ -56415,15 +57170,19 @@
 			const ballMesh = this.ballMesh.clone();
 			ball.setRenderComponent( ballMesh, sync );
 
+			this.scene.add( ballMesh );
+
 			return ball;
 
 		}
 
-		_createGoal() {
+		_createGoal( width, height ) {
 
-			const goal = new Goal$1();
+			const goal = new Goal$1( width, height );
 			const goalMesh = this.goalMesh.clone();
 			goal.setRenderComponent( goalMesh, sync );
+
+			this.scene.add( goalMesh );
 
 			return goal;
 
@@ -56435,13 +57194,27 @@
 			const pitchMesh = this.pitchMesh.clone();
 			pitch.setRenderComponent( pitchMesh, sync );
 
+			this.scene.add( pitchMesh );
+
 			return pitch;
 
 		}
 
-		_createTeam( ball ) {
+		_createTeam( ball, pitch, homeGoal, opposingGoal, color ) {
 
-			const team = new Team( ball );
+			const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
+
+			const baseMesh = ( color === COLOR.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+
+			for ( let i = 0, l = team.children.length; i < l; i ++ ) {
+
+				const player = team.children[ i ];
+				const playerMesh = baseMesh.clone();
+				player.setRenderComponent( playerMesh, sync );
+				this.scene.add( playerMesh );
+
+			}
+
 			return team;
 
 		}
@@ -56456,8 +57229,23 @@
 
 				const region = regions[ i ];
 
+				const canvas = document.createElement( 'canvas' );
+				const context = canvas.getContext( '2d' );
+
+				canvas.width = 128;
+				canvas.height = 128;
+
+				context.fillStyle = '#ffffff';
+				context.fillRect( 0, 0, canvas.width, canvas.height );
+
+				context.fillStyle = "#000000";
+				context.font = '24px Arial';
+				context.textAlign = 'center';
+				context.textBaseline = 'middle';
+				context.fillText( `ID: ${i}`, canvas.width / 2, canvas.height / 2 );
+
 				const geometry = new PlaneBufferGeometry( region.width, region.height );
-				const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), polygonOffset: true, polygonOffsetFactor: - 4, } );
+				const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
 				const mesh = new Mesh( geometry, material );
 
 				mesh.position.set( region.x, 0, region.y );

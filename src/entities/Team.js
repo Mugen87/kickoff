@@ -3,13 +3,17 @@
  */
 
 import { GameEntity, StateMachine } from 'yuka';
+import { ROLE } from './Player.js';
+import FieldPlayer from './FieldPlayer.js';
+import Goalkeeper from './Goalkeeper.js';
 
 class Team extends GameEntity {
 
-	constructor( ball, pitch, homeGoal, opposingGoal ) {
+	constructor( color, ball, pitch, homeGoal, opposingGoal ) {
 
 		super();
 
+		this.color = color;
 		this.ball = ball;
 		this.pitch = pitch;
 		this.homeGoal = homeGoal;
@@ -23,6 +27,8 @@ class Team extends GameEntity {
 		this.supportingPlayer = null;
 
 		this.stateMachine = new StateMachine( this );
+
+		this._createPlayers();
 
 	}
 
@@ -93,7 +99,64 @@ class Team extends GameEntity {
 
 	}
 
+	setupTeamPositions() {
+
+		let regions;
+		const players = this.children;
+
+		if ( this.color === COLOR.RED ) {
+
+			regions = redDefendingRegions;
+
+		} else {
+
+			regions = blueDefendingRegions;
+
+		}
+
+		for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+			const player = players[ i ];
+			const regionId = regions[ i ];
+
+			player.homeRegionId = regionId;
+
+			const region = this.pitch.getRegionById( regionId );
+			player.position.x = region.x;
+			player.position.z = region.y;
+
+		}
+
+	}
+
 	//
+
+	_createPlayers() {
+
+		let rotation = Math.PI * 0.5;
+		rotation *= ( this.color === COLOR.RED ) ? - 1 : 1;
+
+		const goalkeeper = new Goalkeeper( this, this.pitch );
+		goalkeeper.rotation.fromEuler( 0, rotation, 0 );
+		this.add( goalkeeper );
+
+		const fieldplayer1 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+		fieldplayer1.rotation.fromEuler( 0, rotation, 0 );
+		this.add( fieldplayer1 );
+
+		const fieldplayer2 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+		fieldplayer2.rotation.fromEuler( 0, rotation, 0 );
+		this.add( fieldplayer2 );
+
+		const fieldplayer3 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+		fieldplayer3.rotation.fromEuler( 0, rotation, 0 );
+		this.add( fieldplayer3 );
+
+		const fieldplayer4 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+		fieldplayer4.rotation.fromEuler( 0, rotation, 0 );
+		this.add( fieldplayer4 );
+
+	}
 
 	_computePlayerClosestToBall() {
 
@@ -122,4 +185,16 @@ class Team extends GameEntity {
 
 }
 
-export default Team;
+// these define the home regions for this state of each of the players
+// const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
+// const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
+
+const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
+const redDefendingRegions = [ 16, 9, 11, 12, 14 ];
+
+const COLOR = {
+	RED: 0,
+	BLUE: 1
+};
+
+export { Team, COLOR };
