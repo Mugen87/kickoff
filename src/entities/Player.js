@@ -3,6 +3,7 @@
  */
 
 import { Vehicle, MathUtils, StateMachine, Quaternion, Vector3 } from 'yuka';
+import { CONFIG, ROLE } from '../core/Constants.js';
 
 const _quaterion = new Quaternion();
 const _displacement = new Vector3();
@@ -11,7 +12,7 @@ const _toPosition = new Vector3();
 
 class Player extends Vehicle {
 
-	constructor( role, team, pitch ) {
+	constructor( role, team, pitch, homeRegionId ) {
 
 		super();
 
@@ -20,8 +21,8 @@ class Player extends Vehicle {
 		this.team = team;
 		this.pitch = pitch;
 
-		this.homeRegionId = - 1;
-		this.defaultRegionId = - 1;
+		this.homeRegionId = homeRegionId;
+		this.defaultRegionId = homeRegionId;
 
 		// Must be in the range [0,1]. Adjusts the amount of noise added to a kick.
 		// The lower the value the worse the player gets.
@@ -30,7 +31,15 @@ class Player extends Vehicle {
 
 		this.stateMachine = new StateMachine( this );
 
-		this.target = new Vector3();
+		this.steeringTarget = new Vector3();
+
+	}
+
+	update( delta ) {
+
+		this.stateMachine.update();
+
+		super.update( delta );
 
 	}
 
@@ -86,7 +95,7 @@ class Player extends Vehicle {
 
 	isAtTarget() {
 
-		return this.position.squaredDistanceTo( this.target ) < PLAYER_IN_TARGET_RANGE_SQ;
+		return this.position.squaredDistanceTo( this.steeringTarget ) < CONFIG.PLAYER_IN_TARGET_RANGE_SQ;
 
 	}
 
@@ -94,7 +103,7 @@ class Player extends Vehicle {
 
 		const ball = this.team.ball;
 
-		return this.position.squaredDistanceTo( ball.position ) < KEEPER_IN_TARGET_RANGE_SQ;
+		return this.position.squaredDistanceTo( ball.position ) < CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ;
 
 	}
 
@@ -102,7 +111,7 @@ class Player extends Vehicle {
 
 		const ball = this.team.ball;
 
-		return this.position.squaredDistanceTo( ball.position ) < PLAYER_KICKING_DISTANCE_SQ;
+		return this.position.squaredDistanceTo( ball.position ) < CONFIG.PLAYER_KICKING_DISTANCE_SQ;
 
 	}
 
@@ -110,7 +119,7 @@ class Player extends Vehicle {
 
 		const ball = this.team.ball;
 
-		return this.position.squaredDistanceTo( ball.position ) < PLAYER_RECEIVING_RANGE_SQ;
+		return this.position.squaredDistanceTo( ball.position ) < CONFIG.PLAYER_RECEIVING_RANGE_SQ;
 
 	}
 
@@ -177,7 +186,7 @@ class Player extends Vehicle {
 
 			const opponent = opponents[ i ];
 
-			if ( this.isPositionInFrontOfPlayer( opponent.position ) && this.position.squaredDistanceTo( opponent.position ) < PLAYER_COMFORT_ZONE_SQ ) {
+			if ( this.isPositionInFrontOfPlayer( opponent.position ) && this.position.squaredDistanceTo( opponent.position ) < CONFIG.PLAYER_COMFORT_ZONE_SQ ) {
 
 				return true;
 
@@ -203,34 +212,4 @@ class Player extends Vehicle {
 
 }
 
-const ROLE = {
-	GOALKEEPER: 0,
-	ATTACKER: 1,
-	DEFENDER: 2
-};
-
-// the goalkeeper has to be this close to the ball to be able to interact with it
-const KEEPER_IN_TARGET_RANGE = 0.5;
-
-// when an opponents comes within this range the player will attempt to pass
-// the ball. Players tend to pass more often, the higher the value
-const PLAYER_COMFORT_ZONE = 2;
-
-// the player has to be this close to the ball to be able to interact with it
-const PLAYER_IN_TARGET_RANGE = 0.5;
-
-// player has to be this close to the ball to be able to kick it. The higher
-// the value this gets, the easier it gets to tackle.
-const PLAYER_KICKING_DISTANCE = 0.3;
-
-// how close the ball must be to a receiver before he starts chasing it
-const PLAYER_RECEIVING_RANGE = 0.5;
-
-// compute some constants in squared space
-const KEEPER_IN_TARGET_RANGE_SQ = KEEPER_IN_TARGET_RANGE * KEEPER_IN_TARGET_RANGE;
-const PLAYER_COMFORT_ZONE_SQ = PLAYER_COMFORT_ZONE * PLAYER_COMFORT_ZONE;
-const PLAYER_IN_TARGET_RANGE_SQ = PLAYER_IN_TARGET_RANGE * PLAYER_IN_TARGET_RANGE;
-const PLAYER_KICKING_DISTANCE_SQ = PLAYER_KICKING_DISTANCE * PLAYER_KICKING_DISTANCE;
-const PLAYER_RECEIVING_RANGE_SQ = PLAYER_RECEIVING_RANGE * PLAYER_RECEIVING_RANGE;
-
-export { Player, ROLE };
+export default Player;

@@ -3,15 +3,16 @@
  */
 
 import { Regulator } from 'yuka';
-import { Player } from './Player.js';
+import { CONFIG } from '../core/Constants.js';
+import Player from './Player.js';
 
 class FieldPlayer extends Player {
 
-	constructor( role, team, pitch ) {
+	constructor( role, team, pitch, homeRegionId ) {
 
-		super( role, team, pitch );
+		super( role, team, pitch, homeRegionId );
 
-		this._kickRegulator = new Regulator( PLAYER_KICK_FREQUENCY );
+		this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
 	}
 
@@ -22,8 +23,5 @@ class FieldPlayer extends Player {
 	}
 
 }
-
-// the number of times a player can kick the ball per second
-const PLAYER_KICK_FREQUENCY = 1;
 
 export default FieldPlayer;

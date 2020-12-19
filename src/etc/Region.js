@@ -6,20 +6,19 @@ import { MathUtils } from 'yuka';
 
 class Region {
 
-	constructor( x, y, width, height, id = 0 ) {
+	constructor( center, width, height, id = 0 ) {
 
-		this.x = x;
-		this.y = y;
+		this.center = center;
 
 		this.width = width;
 		this.height = height;
 
 		this.id = id;
 
-		this._left = x - ( width / 2 );
-		this._right = x + ( width / 2 );
-		this._top = y + ( height / 2 );
-		this._bottom = y - ( height / 2 );
+		this._left = center.x - ( width / 2 );
+		this._right = center.x + ( width / 2 );
+		this._top = center.z + ( height / 2 );
+		this._bottom = center.z - ( height / 2 );
 
 	}
 

@@ -3,7 +3,7 @@
  */
 
 import { GameEntity, StateMachine } from 'yuka';
-import { ROLE } from './Player.js';
+import { MESSAGE, TEAM, ROLE } from '../core/Constants.js';
 import FieldPlayer from './FieldPlayer.js';
 import Goalkeeper from './Goalkeeper.js';
 
@@ -91,6 +91,32 @@ class Team extends GameEntity {
 
 	}
 
+	returnAllFieldPlayersToHome( withGoalKeeper = false ) {
+
+		const players = this.children;
+
+		for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+			const player = players[ i ];
+
+			if ( withGoalKeeper === true ) {
+
+				this.sendMessage( player, MESSAGE.GO_HOME );
+
+			} else {
+
+				if ( player.role !== ROLE.GOALKEEPER ) {
+
+					this.sendMessage( player, MESSAGE.GO_HOME );
+
+				}
+
+			}
+
+		}
+
+	}
+
 	setControl( player ) {
 
 		this.controllingPlayer = player;
@@ -104,7 +130,7 @@ class Team extends GameEntity {
 		let regions;
 		const players = this.children;
 
-		if ( this.color === COLOR.RED ) {
+		if ( this.color === TEAM.RED ) {
 
 			regions = redDefendingRegions;
 
@@ -122,8 +148,7 @@ class Team extends GameEntity {
 			player.homeRegionId = regionId;
 
 			const region = this.pitch.getRegionById( regionId );
-			player.position.x = region.x;
-			player.position.z = region.y;
+			player.position.copy( region.center );
 
 		}
 
@@ -134,25 +159,36 @@ class Team extends GameEntity {
 	_createPlayers() {
 
 		let rotation = Math.PI * 0.5;
-		rotation *= ( this.color === COLOR.RED ) ? - 1 : 1;
+		let regions;
 
-		const goalkeeper = new Goalkeeper( this, this.pitch );
+		if ( this.color === TEAM.RED ) {
+
+			regions = redDefendingRegions;
+			rotation *= - 1;
+
+		} else {
+
+			regions = blueDefendingRegions;
+
+		}
+
+		const goalkeeper = new Goalkeeper( this, this.pitch, regions[ 0 ] );
 		goalkeeper.rotation.fromEuler( 0, rotation, 0 );
 		this.add( goalkeeper );
 
-		const fieldplayer1 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+		const fieldplayer1 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch, regions[ 1 ] );
 		fieldplayer1.rotation.fromEuler( 0, rotation, 0 );
 		this.add( fieldplayer1 );
 
-		const fieldplayer2 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+		const fieldplayer2 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch, regions[ 2 ] );
 		fieldplayer2.rotation.fromEuler( 0, rotation, 0 );
 		this.add( fieldplayer2 );
 
-		const fieldplayer3 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+		const fieldplayer3 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch, regions[ 3 ] );
 		fieldplayer3.rotation.fromEuler( 0, rotation, 0 );
 		this.add( fieldplayer3 );
 
-		const fieldplayer4 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+		const fieldplayer4 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch, regions[ 4 ] );
 		fieldplayer4.rotation.fromEuler( 0, rotation, 0 );
 		this.add( fieldplayer4 );
 
@@ -192,9 +228,4 @@ class Team extends GameEntity {
 const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
 const redDefendingRegions = [ 16, 9, 11, 12, 14 ];
 
-const COLOR = {
-	RED: 0,
-	BLUE: 1
-};
-
-export { Team, COLOR };
+export default Team;

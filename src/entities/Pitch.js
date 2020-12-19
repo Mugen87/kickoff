@@ -24,7 +24,7 @@ class Pitch extends GameEntity {
 		this.isPlaying = false;
 		this.isGoalKeeperInBallPossession = false;
 
-		this.playingArea = new Region( this.position.x, this.position.z, width, height );
+		this.playingArea = new Region( this.position.clone(), width, height );
 
 		this.regionCountWidth = 6;
 		this.regionCountHeight = 3;
@@ -54,9 +54,10 @@ class Pitch extends GameEntity {
 			for ( let row = 0; row < this.regionCountHeight; row ++ ) {
 
 				const x = col * width + ( width / 2 ) - ( playingArea.width / 2 );
-				const y = row * height + ( height / 2 ) - ( playingArea.height / 2 );
+				const y = 0;
+				const z = row * height + ( height / 2 ) - ( playingArea.height / 2 );
 
-				this.regions[ id ] = new Region( x, y, width, height, id );
+				this.regions[ id ] = new Region( new Vector3( x, y, z ), width, height, id );
 
 				id ++;
 

@@ -56317,20 +56317,19 @@
 
 	class Region {
 
-		constructor( x, y, width, height, id = 0 ) {
+		constructor( center, width, height, id = 0 ) {
 
-			this.x = x;
-			this.y = y;
+			this.center = center;
 
 			this.width = width;
 			this.height = height;
 
 			this.id = id;
 
-			this._left = x - ( width / 2 );
-			this._right = x + ( width / 2 );
-			this._top = y + ( height / 2 );
-			this._bottom = y - ( height / 2 );
+			this._left = center.x - ( width / 2 );
+			this._right = center.x + ( width / 2 );
+			this._top = center.z + ( height / 2 );
+			this._bottom = center.z - ( height / 2 );
 
 		}
 
@@ -56393,7 +56392,7 @@
 			this.isPlaying = false;
 			this.isGoalKeeperInBallPossession = false;
 
-			this.playingArea = new Region( this.position.x, this.position.z, width, height );
+			this.playingArea = new Region( this.position.clone(), width, height );
 
 			this.regionCountWidth = 6;
 			this.regionCountHeight = 3;
@@ -56423,9 +56422,10 @@
 				for ( let row = 0; row < this.regionCountHeight; row ++ ) {
 
 					const x = col * width + ( width / 2 ) - ( playingArea.width / 2 );
-					const y = row * height + ( height / 2 ) - ( playingArea.height / 2 );
+					const y = 0;
+					const z = row * height + ( height / 2 ) - ( playingArea.height / 2 );
 
-					this.regions[ id ] = new Region( x, y, width, height, id );
+					this.regions[ id ] = new Region( new Vector3$1( x, y, z ), width, height, id );
 
 					id ++;
 
@@ -56436,6 +56436,47 @@
 		}
 
 	}
+
+	const MESSAGE = {
+		GO_HOME: 'GO_HOME',
+		PASS_TO_ME: 'PASS_TO_ME',
+		RECEIVE_BALL: 'RECEIVE_BALL',
+		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER'
+	};
+	const GOALKEEPER_STATES = {
+		RETURN_HOME: 'RETURN_HOME',
+		TEND_GOAL: 'TEND_GOAL',
+		PUT_BALL_BACK_IN_PLAY: 'PUT_BALL_BACK_IN_PLAY',
+		INTERCEPT_BALL: 'INTERCEPT_BALL'
+	};
+	const CONFIG = {
+		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
+		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+		GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
+		PLAYER_COMFORT_ZONE: 2, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
+		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
+		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
+		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
+		PLAYER_RECEIVING_RANGE: 0.5 // how close the ball must be to a receiver before he starts chasing it
+	};
+
+	const TEAM = {
+		RED: 0,
+		BLUE: 1
+	};
+
+	const ROLE = {
+		GOALKEEPER: 0,
+		ATTACKER: 1,
+		DEFENDER: 2
+	};
+
+	CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ = CONFIG.GOALKEEPER_INTERCEPT_RANGE * CONFIG.GOALKEEPER_INTERCEPT_RANGE;
+	CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ = CONFIG.GOALKEEPER_IN_TARGET_RANGE * CONFIG.GOALKEEPER_IN_TARGET_RANGE;
+	CONFIG.PLAYER_COMFORT_ZONE_SQ = CONFIG.PLAYER_COMFORT_ZONE * CONFIG.PLAYER_COMFORT_ZONE;
+	CONFIG.PLAYER_IN_TARGET_RANGE_SQ = CONFIG.PLAYER_IN_TARGET_RANGE * CONFIG.PLAYER_IN_TARGET_RANGE;
+	CONFIG.PLAYER_KICKING_DISTANCE_SQ = CONFIG.PLAYER_KICKING_DISTANCE * CONFIG.PLAYER_KICKING_DISTANCE;
+	CONFIG.PLAYER_RECEIVING_RANGE_SQ = CONFIG.PLAYER_RECEIVING_RANGE * CONFIG.PLAYER_RECEIVING_RANGE;
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
@@ -56448,7 +56489,7 @@
 
 	class Player extends Vehicle {
 
-		constructor( role, team, pitch ) {
+		constructor( role, team, pitch, homeRegionId ) {
 
 			super();
 
@@ -56457,8 +56498,8 @@
 			this.team = team;
 			this.pitch = pitch;
 
-			this.homeRegionId = - 1;
-			this.defaultRegionId = - 1;
+			this.homeRegionId = homeRegionId;
+			this.defaultRegionId = homeRegionId;
 
 			// Must be in the range [0,1]. Adjusts the amount of noise added to a kick.
 			// The lower the value the worse the player gets.
@@ -56467,7 +56508,15 @@
 
 			this.stateMachine = new StateMachine( this );
 
-			this.target = new Vector3$1();
+			this.steeringTarget = new Vector3$1();
+
+		}
+
+		update( delta ) {
+
+			this.stateMachine.update();
+
+			super.update( delta );
 
 		}
 
@@ -56523,7 +56572,7 @@
 
 		isAtTarget() {
 
-			return this.position.squaredDistanceTo( this.target ) < PLAYER_IN_TARGET_RANGE_SQ;
+			return this.position.squaredDistanceTo( this.steeringTarget ) < CONFIG.PLAYER_IN_TARGET_RANGE_SQ;
 
 		}
 
@@ -56531,7 +56580,7 @@
 
 			const ball = this.team.ball;
 
-			return this.position.squaredDistanceTo( ball.position ) < KEEPER_IN_TARGET_RANGE_SQ;
+			return this.position.squaredDistanceTo( ball.position ) < CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ;
 
 		}
 
@@ -56539,7 +56588,7 @@
 
 			const ball = this.team.ball;
 
-			return this.position.squaredDistanceTo( ball.position ) < PLAYER_KICKING_DISTANCE_SQ;
+			return this.position.squaredDistanceTo( ball.position ) < CONFIG.PLAYER_KICKING_DISTANCE_SQ;
 
 		}
 
@@ -56547,7 +56596,7 @@
 
 			const ball = this.team.ball;
 
-			return this.position.squaredDistanceTo( ball.position ) < PLAYER_RECEIVING_RANGE_SQ;
+			return this.position.squaredDistanceTo( ball.position ) < CONFIG.PLAYER_RECEIVING_RANGE_SQ;
 
 		}
 
@@ -56614,7 +56663,7 @@
 
 				const opponent = opponents[ i ];
 
-				if ( this.isPositionInFrontOfPlayer( opponent.position ) && this.position.squaredDistanceTo( opponent.position ) < PLAYER_COMFORT_ZONE_SQ ) {
+				if ( this.isPositionInFrontOfPlayer( opponent.position ) && this.position.squaredDistanceTo( opponent.position ) < CONFIG.PLAYER_COMFORT_ZONE_SQ ) {
 
 					return true;
 
@@ -56640,47 +56689,17 @@
 
 	}
 
-	const ROLE = {
-		GOALKEEPER: 0,
-		ATTACKER: 1,
-		DEFENDER: 2
-	};
-
-	// the goalkeeper has to be this close to the ball to be able to interact with it
-	const KEEPER_IN_TARGET_RANGE = 0.5;
-
-	// when an opponents comes within this range the player will attempt to pass
-	// the ball. Players tend to pass more often, the higher the value
-	const PLAYER_COMFORT_ZONE = 2;
-
-	// the player has to be this close to the ball to be able to interact with it
-	const PLAYER_IN_TARGET_RANGE = 0.5;
-
-	// player has to be this close to the ball to be able to kick it. The higher
-	// the value this gets, the easier it gets to tackle.
-	const PLAYER_KICKING_DISTANCE = 0.3;
-
-	// how close the ball must be to a receiver before he starts chasing it
-	const PLAYER_RECEIVING_RANGE = 0.5;
-
-	// compute some constants in squared space
-	const KEEPER_IN_TARGET_RANGE_SQ = KEEPER_IN_TARGET_RANGE * KEEPER_IN_TARGET_RANGE;
-	const PLAYER_COMFORT_ZONE_SQ = PLAYER_COMFORT_ZONE * PLAYER_COMFORT_ZONE;
-	const PLAYER_IN_TARGET_RANGE_SQ = PLAYER_IN_TARGET_RANGE * PLAYER_IN_TARGET_RANGE;
-	const PLAYER_KICKING_DISTANCE_SQ = PLAYER_KICKING_DISTANCE * PLAYER_KICKING_DISTANCE;
-	const PLAYER_RECEIVING_RANGE_SQ = PLAYER_RECEIVING_RANGE * PLAYER_RECEIVING_RANGE;
-
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
 	class FieldPlayer extends Player {
 
-		constructor( role, team, pitch ) {
+		constructor( role, team, pitch, homeRegionId ) {
 
-			super( role, team, pitch );
+			super( role, team, pitch, homeRegionId );
 
-			this._kickRegulator = new Regulator( PLAYER_KICK_FREQUENCY );
+			this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
 		}
 
@@ -56692,18 +56711,250 @@
 
 	}
 
-	// the number of times a player can kick the ball per second
-	const PLAYER_KICK_FREQUENCY = 1;
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	const _target$1 = new Vector3$1();
+	const _displacement$1 = new Vector3$1();
+
+	class GlobalState extends State {
+
+		onMessage( goalkeeper, telegram ) {
+
+			switch ( telegram.message ) {
+
+				case MESSAGE.GO_HOME:
+
+					goalkeeper.setDefaultHomeRegion();
+
+					goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.RETURN_HOME );
+
+					return true;
+
+				case MESSAGE.RECEIVE_BALL:
+
+					goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.INTERCEPT_BALL );
+
+					return true;
+
+			}
+
+			return false;
+
+		}
+
+	}
+
+	//
+
+	class ReturnHomeState extends State {
+
+		enter( goalkeeper ) {
+
+			const region = goalkeeper.getHomeRegion();
+			goalkeeper.steeringTarget.copy( region.center );
+
+			const arriveBehavior = goalkeeper.steering.behaviors[ 0 ];
+			arriveBehavior.target = goalkeeper.steeringTarget;
+			arriveBehavior.active = true;
+
+		}
+
+		execute( goalkeeper ) {
+
+			if ( goalkeeper.isInHomeRegion() || goalkeeper.team.inControl() === false ) {
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
+
+			}
+
+		}
+
+		exit( goalkeeper ) {
+
+			const arriveBehavior = goalkeeper.steering.behaviors[ 0 ];
+			arriveBehavior.target = null;
+			arriveBehavior.active = false;
+
+		}
+
+	}
+
+	class TendGoalState extends State {
+
+		enter( goalkeeper ) {
+
+			const arriveBehavior = goalkeeper.steering.behaviors[ 0 ];
+			arriveBehavior.target = goalkeeper.steeringTarget;
+			arriveBehavior.active = true;
+
+		}
+
+		execute( goalkeeper ) {
+
+			const ball = goalkeeper.team.ball;
+
+			goalkeeper.getRearInterposeTarget( _target$1 );
+
+			_displacement$1.subVectors( ball.position, _target$1 ).normalize().multiplyScalar( CONFIG.GOALKEEPER_TENDING_DISTANCE );
+
+			goalkeeper.steeringTarget.copy( _target$1 ).add( _displacement$1 );
+
+			//
+
+			if ( goalkeeper.isBallWithinKeeperRange() ) {
+
+				ball.trap();
+
+				goalkeeper.pitch.isGoalKeeperInBallPossession = true;
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY );
+
+				return;
+
+			}
+
+			if ( goalkeeper.isTooFarFromGoalMouth() && goalkeeper.team.inControl() ) {
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.RETURN_HOME );
+
+				return;
+
+			}
+
+			if ( goalkeeper.isBallWithinRangeForIntercept() && goalkeeper.team.isInControl() === false ) {
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.INTERCEPT_BALL );
+
+				return;
+
+			}
+
+		}
+
+		exit( goalkeeper ) {
+
+			const arriveBehavior = goalkeeper.steering.behaviors[ 0 ];
+			arriveBehavior.target = null;
+			arriveBehavior.active = false;
+
+		}
+
+	}
+
+	class InterceptBallState extends State {
+
+		enter( goalkeeper ) {
+
+			const pursuitBehavior = goalkeeper.steering.behaviors[ 1 ];
+			pursuitBehavior.evader = goalkeeper.team.ball;
+			pursuitBehavior.active = true;
+
+		}
+
+		execute( goalkeeper ) {
+
+			if ( goalkeeper.isTooFarFromGoalMouth() && goalkeeper.isClosestPlayerOnPitchToBall() === false ) {
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.RETURN_HOME );
+
+				return;
+
+			}
+
+			if ( goalkeeper.isBallWithinKeeperRange() ) {
+
+				const ball = goalkeeper.team.ball;
+				ball.trap();
+
+				goalkeeper.pitch.isGoalKeeperInBallPossession = true;
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY );
+
+				return;
+
+			}
+
+		}
+
+		exit( goalkeeper ) {
+
+			const pursuitBehavior = goalkeeper.steering.behaviors[ 1 ];
+			pursuitBehavior.evader = null;
+			pursuitBehavior.active = false;
+
+		}
+
+	}
+
+	class PutBallBackInPlayState extends State {
+
+		enter( goalkeeper ) {
+
+			goalkeeper.team.setControl( goalkeeper );
+
+			goalkeeper.team.returnAllFieldPlayersToHome();
+			goalkeeper.team.opposingTeam.returnAllFieldPlayersToHome();
+
+		}
+
+		execute( goalkeeper ) {
+
+			// TODO
+
+			goalkeeper.velocity.set( 0, 0, 0 );
+
+		}
+
+	}
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
+	const _target$2 = new Vector3$1();
+
 	class Goalkeeper extends Player {
 
-		constructor( team, pitch ) {
+		constructor( team, pitch, homeRegionId ) {
 
-			super( ROLE.GOALKEEPER, team, pitch );
+			super( ROLE.GOALKEEPER, team, pitch, homeRegionId );
+
+			this.updateOrientation = false;
+
+			this.stateMachine.globalState = new GlobalState();
+
+			this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState() );
+			this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
+			this.stateMachine.add( GOALKEEPER_STATES.INTERCEPT_BALL, new InterceptBallState() );
+			this.stateMachine.add( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY, new PutBallBackInPlayState() );
+
+			//
+
+			const arriveBehavior = new ArriveBehavior();
+			arriveBehavior.active = false;
+			this.steering.add( arriveBehavior );
+
+			const pursuitBehavior = new PursuitBehavior();
+			pursuitBehavior.active = false;
+			this.steering.add( pursuitBehavior );
+
+		}
+
+		update( delta ) {
+
+			super.update( delta );
+
+			if ( this.stateMachine.in( GOALKEEPER_STATES.RETURN_HOME ) ) {
+
+				this.rotateTo( this.steeringTarget, delta );
+
+			} else {
+
+				this.rotateTo( this.team.ball.position, delta );
+
+			}
 
 		}
 
@@ -56712,13 +56963,15 @@
 			const ball = this.team.ball;
 			const goal = this.team.homeGoal;
 
-			return goal.squaredDistanceTo( ball.position ) <= KEEPER_INTERCEPT_RANGE_SQ;
+			return goal.position.squaredDistanceTo( ball.position ) <= CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ;
 
 		}
 
 		isTooFarFromGoalMouth() {
 
-			return this.position.squaredDistanceTo( this.getRearInterposeTarget() ) > KEEPER_INTERCEPT_RANGE_SQ;
+			this.getRearInterposeTarget( _target$2 );
+
+			return this.position.squaredDistanceTo( _target$2 ) > CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ;
 
 		}
 
@@ -56732,15 +56985,14 @@
 		 *
 		 * @returns {Vector3} The interpose target.
 		 */
-		getRearInterposeTarget() {
-
-			const target = new Vector3$1();
+		getRearInterposeTarget( target ) {
 
 			const pitch = this.pitch;
 			const ball = this.team.ball;
 			const goal = this.team.homeGoal;
 
 			target.x = goal.position.x;
+			target.y = 0;
 			target.z = ball.position.z * ( goal.width / pitch.playingArea.height );
 
 			return target;
@@ -56748,10 +57000,6 @@
 		}
 
 	}
-
-	// when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
-	const KEEPER_INTERCEPT_RANGE = 3;
-	const KEEPER_INTERCEPT_RANGE_SQ = KEEPER_INTERCEPT_RANGE * KEEPER_INTERCEPT_RANGE;
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
@@ -56841,6 +57089,32 @@
 
 		}
 
+		returnAllFieldPlayersToHome( withGoalKeeper = false ) {
+
+			const players = this.children;
+
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+				const player = players[ i ];
+
+				if ( withGoalKeeper === true ) {
+
+					this.sendMessage( player, MESSAGE.GO_HOME );
+
+				} else {
+
+					if ( player.role !== ROLE.GOALKEEPER ) {
+
+						this.sendMessage( player, MESSAGE.GO_HOME );
+
+					}
+
+				}
+
+			}
+
+		}
+
 		setControl( player ) {
 
 			this.controllingPlayer = player;
@@ -56854,7 +57128,7 @@
 			let regions;
 			const players = this.children;
 
-			if ( this.color === COLOR.RED ) {
+			if ( this.color === TEAM.RED ) {
 
 				regions = redDefendingRegions;
 
@@ -56872,8 +57146,7 @@
 				player.homeRegionId = regionId;
 
 				const region = this.pitch.getRegionById( regionId );
-				player.position.x = region.x;
-				player.position.z = region.y;
+				player.position.copy( region.center );
 
 			}
 
@@ -56884,25 +57157,36 @@
 		_createPlayers() {
 
 			let rotation = Math.PI * 0.5;
-			rotation *= ( this.color === COLOR.RED ) ? - 1 : 1;
+			let regions;
 
-			const goalkeeper = new Goalkeeper( this, this.pitch );
+			if ( this.color === TEAM.RED ) {
+
+				regions = redDefendingRegions;
+				rotation *= - 1;
+
+			} else {
+
+				regions = blueDefendingRegions;
+
+			}
+
+			const goalkeeper = new Goalkeeper( this, this.pitch, regions[ 0 ] );
 			goalkeeper.rotation.fromEuler( 0, rotation, 0 );
 			this.add( goalkeeper );
 
-			const fieldplayer1 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+			const fieldplayer1 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch, regions[ 1 ] );
 			fieldplayer1.rotation.fromEuler( 0, rotation, 0 );
 			this.add( fieldplayer1 );
 
-			const fieldplayer2 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch );
+			const fieldplayer2 = new FieldPlayer( ROLE.ATTACKER, this, this.pitch, regions[ 2 ] );
 			fieldplayer2.rotation.fromEuler( 0, rotation, 0 );
 			this.add( fieldplayer2 );
 
-			const fieldplayer3 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+			const fieldplayer3 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch, regions[ 3 ] );
 			fieldplayer3.rotation.fromEuler( 0, rotation, 0 );
 			this.add( fieldplayer3 );
 
-			const fieldplayer4 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch );
+			const fieldplayer4 = new FieldPlayer( ROLE.DEFENDER, this, this.pitch, regions[ 4 ] );
 			fieldplayer4.rotation.fromEuler( 0, rotation, 0 );
 			this.add( fieldplayer4 );
 
@@ -56941,11 +57225,6 @@
 
 	const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
 	const redDefendingRegions = [ 16, 9, 11, 12, 14 ];
-
-	const COLOR = {
-		RED: 0,
-		BLUE: 1
-	};
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
@@ -57148,19 +57427,30 @@
 			const ball = this._createBall( pitch );
 			this.entityManager.add( ball );
 
-			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, COLOR.RED );
+			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, TEAM.RED );
 			this.entityManager.add( teamRed );
 
-			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, COLOR.BLUE );
+			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, TEAM.BLUE );
 			this.entityManager.add( teamBlue );
 
 			teamRed.opposingTeam = teamBlue;
 			teamBlue.opposingTeam = teamRed;
 
+			// temp
+
 			teamRed.setupTeamPositions();
 			teamBlue.setupTeamPositions();
 
+			teamRed.children[ 0 ].position.set( 5, 0, 0 );
+			teamRed.returnAllFieldPlayersToHome( true );
+
 			this._debugPitch( pitch );
+
+			setTimeout( () => {
+
+				ball.kick( new Vector3$1( 0, 0, 2 ) );
+
+			}, 1000 );
 
 		}
 
@@ -57204,7 +57494,7 @@
 
 			const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
 
-			const baseMesh = ( color === COLOR.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+			const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
 
 			for ( let i = 0, l = team.children.length; i < l; i ++ ) {
 
@@ -57248,7 +57538,7 @@
 				const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
 				const mesh = new Mesh( geometry, material );
 
-				mesh.position.set( region.x, 0, region.y );
+				mesh.position.copy( region.center );
 				mesh.rotation.x = Math.PI * - 0.5;
 
 				this.scene.add( mesh );

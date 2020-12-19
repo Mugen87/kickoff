@@ -3,13 +3,14 @@
  */
 
 import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture } from 'three';
-import { EntityManager, Time } from 'yuka';
+import { EntityManager, Time, Vector3 } from 'yuka';
 
 import AssetManager from './AssetManager.js';
 import Ball from '../entities/Ball.js';
 import Goal from '../entities/Goal.js';
 import Pitch from '../entities/Pitch.js';
-import { Team, COLOR } from '../entities/Team.js';
+import Team from '../entities/Team.js';
+import { TEAM } from './Constants.js';
 
 class World {
 
@@ -208,19 +209,30 @@ class World {
 		const ball = this._createBall( pitch );
 		this.entityManager.add( ball );
 
-		const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, COLOR.RED );
+		const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, TEAM.RED );
 		this.entityManager.add( teamRed );
 
-		const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, COLOR.BLUE );
+		const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, TEAM.BLUE );
 		this.entityManager.add( teamBlue );
 
 		teamRed.opposingTeam = teamBlue;
 		teamBlue.opposingTeam = teamRed;
 
+		// temp
+
 		teamRed.setupTeamPositions();
 		teamBlue.setupTeamPositions();
 
+		teamRed.children[ 0 ].position.set( 5, 0, 0 );
+		teamRed.returnAllFieldPlayersToHome( true );
+
 		this._debugPitch( pitch );
+
+		setTimeout( () => {
+
+			ball.kick( new Vector3( 0, 0, 2 ) );
+
+		}, 1000 );
 
 	}
 
@@ -264,7 +276,7 @@ class World {
 
 		const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
 
-		const baseMesh = ( color === COLOR.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+		const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
 
 		for ( let i = 0, l = team.children.length; i < l; i ++ ) {
 
@@ -308,7 +320,7 @@ class World {
 			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
 			const mesh = new Mesh( geometry, material );
 
-			mesh.position.set( region.x, 0, region.y );
+			mesh.position.copy( region.center );
 			mesh.rotation.x = Math.PI * - 0.5;
 
 			this.scene.add( mesh );

@@ -2,14 +2,53 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-import { Vector3 } from 'yuka';
-import { Player, ROLE } from './Player.js';
+import { ArriveBehavior, PursuitBehavior, Vector3 } from 'yuka';
+import { GOALKEEPER_STATES, CONFIG, ROLE } from '../core/Constants.js';
+import { GlobalState, InterceptBallState, PutBallBackInPlayState, ReturnHomeState, TendGoalState } from '../states/GoalkeeperStates.js';
+import Player from './Player.js';
+
+const _target = new Vector3();
 
 class Goalkeeper extends Player {
 
-	constructor( team, pitch ) {
+	constructor( team, pitch, homeRegionId ) {
 
-		super( ROLE.GOALKEEPER, team, pitch );
+		super( ROLE.GOALKEEPER, team, pitch, homeRegionId );
+
+		this.updateOrientation = false;
+
+		this.stateMachine.globalState = new GlobalState();
+
+		this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState() );
+		this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
+		this.stateMachine.add( GOALKEEPER_STATES.INTERCEPT_BALL, new InterceptBallState() );
+		this.stateMachine.add( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY, new PutBallBackInPlayState() );
+
+		//
+
+		const arriveBehavior = new ArriveBehavior();
+		arriveBehavior.active = false;
+		this.steering.add( arriveBehavior );
+
+		const pursuitBehavior = new PursuitBehavior();
+		pursuitBehavior.active = false;
+		this.steering.add( pursuitBehavior );
+
+	}
+
+	update( delta ) {
+
+		super.update( delta );
+
+		if ( this.stateMachine.in( GOALKEEPER_STATES.RETURN_HOME ) ) {
+
+			this.rotateTo( this.steeringTarget, delta );
+
+		} else {
+
+			this.rotateTo( this.team.ball.position, delta );
+
+		}
 
 	}
 
@@ -18,13 +57,15 @@ class Goalkeeper extends Player {
 		const ball = this.team.ball;
 		const goal = this.team.homeGoal;
 
-		return goal.squaredDistanceTo( ball.position ) <= KEEPER_INTERCEPT_RANGE_SQ;
+		return goal.position.squaredDistanceTo( ball.position ) <= CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ;
 
 	}
 
 	isTooFarFromGoalMouth() {
 
-		return this.position.squaredDistanceTo( this.getRearInterposeTarget() ) > KEEPER_INTERCEPT_RANGE_SQ;
+		this.getRearInterposeTarget( _target );
+
+		return this.position.squaredDistanceTo( _target ) > CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ;
 
 	}
 
@@ -38,15 +79,14 @@ class Goalkeeper extends Player {
 	 *
 	 * @returns {Vector3} The interpose target.
 	 */
-	getRearInterposeTarget() {
-
-		const target = new Vector3();
+	getRearInterposeTarget( target ) {
 
 		const pitch = this.pitch;
 		const ball = this.team.ball;
 		const goal = this.team.homeGoal;
 
 		target.x = goal.position.x;
+		target.y = 0;
 		target.z = ball.position.z * ( goal.width / pitch.playingArea.height );
 
 		return target;
@@ -54,9 +94,5 @@ class Goalkeeper extends Player {
 	}
 
 }
-
-// when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
-const KEEPER_INTERCEPT_RANGE = 3;
-const KEEPER_INTERCEPT_RANGE_SQ = KEEPER_INTERCEPT_RANGE * KEEPER_INTERCEPT_RANGE;
 
 export default Goalkeeper;
