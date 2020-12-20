@@ -22,12 +22,18 @@ export const FIELDPLAYER_STATES = {
 export const CONFIG = {
 	GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 	GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+	GOALKEEPER_MIN_PASS_DISTANCE: 3, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
 	GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
 	PLAYER_COMFORT_ZONE: 2, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
-	PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 	PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
+	PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 	PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
-	PLAYER_RECEIVING_RANGE: 0.5 // how close the ball must be to a receiver before he starts chasing it
+	PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
+	PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
+	PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
+	PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
+	PLAYER_PASS_REQUEST_FAILURE: 0.1 // the likelihood that a pass request won't be noticed
+
 };
 
 export const TEAM = {

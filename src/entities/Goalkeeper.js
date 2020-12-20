@@ -40,15 +40,7 @@ class Goalkeeper extends Player {
 
 		super.update( delta );
 
-		if ( this.stateMachine.in( GOALKEEPER_STATES.RETURN_HOME ) ) {
-
-			this.rotateTo( this.steeringTarget, delta );
-
-		} else {
-
-			this.rotateTo( this.team.ball.position, delta );
-
-		}
+		this.rotateTo( this.team.ball.position, delta );
 
 	}
 

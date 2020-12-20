@@ -2,7 +2,7 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture } from 'three';
+import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, CircleBufferGeometry } from 'three';
 import { EntityManager, Time, Vector3 } from 'yuka';
 
 import AssetManager from './AssetManager.js';
@@ -227,10 +227,11 @@ class World {
 		teamRed.returnAllFieldPlayersToHome( true );
 
 		this._debugPitch( pitch );
+		//this._debugTeam( teamRed );
 
 		setTimeout( () => {
 
-			ball.kick( new Vector3( 0, 0, 2 ) );
+			ball.kick( new Vector3( 3, 0, 0 ) );
 
 		}, 1000 );
 
@@ -340,6 +341,43 @@ class World {
 			this.scene.add( helper );
 
 		}
+
+	}
+
+	_debugTeam( team ) {
+
+		const C = new Vector3();
+		const R = 4;
+		const P = new Vector3( - 8, 0, 0 );
+		const T1 = new Vector3();
+		const T2 = new Vector3();
+
+		team._computeTangentPoints( C, R, P, T1, T2 );
+
+		const circleGeometry = new CircleBufferGeometry( R, 32 );
+		circleGeometry.rotateX( Math.PI * - 0.5 );
+		const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
+		const circle = new Mesh( circleGeometry, circleMaterial );
+		circle.position.copy( C );
+		circle.position.y = 0.01;
+		this.scene.add( circle );
+
+		const pointGeometry = new SphereBufferGeometry( 0.1 );
+		pointGeometry.translate( 0, 0.05, 0 );
+		const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
+
+		const point1 = new Mesh( pointGeometry, pointMaterial );
+		point1.position.copy( T1 );
+		this.scene.add( point1 );
+
+		const point2 = new Mesh( pointGeometry, pointMaterial );
+		point2.position.copy( T2 );
+		this.scene.add( point2 );
+
+		const point3 = new Mesh( pointGeometry, pointMaterial );
+		point3.position.copy( P );
+		this.scene.add( point3 );
+
 
 	}
 

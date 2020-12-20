@@ -33,6 +33,8 @@ class Player extends Vehicle {
 
 		this.steeringTarget = new Vector3();
 
+		this.manager = team.manager;
+
 	}
 
 	update( delta ) {

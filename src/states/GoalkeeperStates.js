@@ -191,7 +191,31 @@ class PutBallBackInPlayState extends State {
 
 	execute( goalkeeper ) {
 
-		// TODO
+		const pass = {
+			receiver: null,
+			target: new Vector3()
+		};
+
+		const team = goalkeeper.team;
+
+		if ( team.findPass( goalkeeper, CONFIG.PLAYER_MAX_PASSING_FORCE, CONFIG.GOALKEEPER_MIN_PASS_DISTANCE, pass ) !== null ) {
+
+			const ball = team.ball;
+
+			const force = new Vector3();
+			force.subVectors( pass.target, ball.position ).normalize().multiplyScalar( CONFIG.PLAYER_MAX_PASSING_FORCE );
+
+			ball.kick( force );
+
+			goalkeeper.pitch.isGoalKeeperInBallPossession = false;
+
+			team.sendMessage( pass.receiver, MESSAGE.RECEIVE_BALL, 0, { target: pass.target } ); // TODO: Call sendMessage on game entity (currently not possible because of missing manager reference)
+
+			goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
+
+			return;
+
+		}
 
 		goalkeeper.velocity.set( 0, 0, 0 );
 

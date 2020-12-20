@@ -28725,6 +28725,84 @@
 
 	} );
 
+	class CircleBufferGeometry extends BufferGeometry {
+
+		constructor( radius = 1, segments = 8, thetaStart = 0, thetaLength = Math.PI * 2 ) {
+
+			super();
+
+			this.type = 'CircleBufferGeometry';
+
+			this.parameters = {
+				radius: radius,
+				segments: segments,
+				thetaStart: thetaStart,
+				thetaLength: thetaLength
+			};
+
+			segments = Math.max( 3, segments );
+
+			// buffers
+
+			const indices = [];
+			const vertices = [];
+			const normals = [];
+			const uvs = [];
+
+			// helper variables
+
+			const vertex = new Vector3();
+			const uv = new Vector2();
+
+			// center point
+
+			vertices.push( 0, 0, 0 );
+			normals.push( 0, 0, 1 );
+			uvs.push( 0.5, 0.5 );
+
+			for ( let s = 0, i = 3; s <= segments; s ++, i += 3 ) {
+
+				const segment = thetaStart + s / segments * thetaLength;
+
+				// vertex
+
+				vertex.x = radius * Math.cos( segment );
+				vertex.y = radius * Math.sin( segment );
+
+				vertices.push( vertex.x, vertex.y, vertex.z );
+
+				// normal
+
+				normals.push( 0, 0, 1 );
+
+				// uvs
+
+				uv.x = ( vertices[ i ] / radius + 1 ) / 2;
+				uv.y = ( vertices[ i + 1 ] / radius + 1 ) / 2;
+
+				uvs.push( uv.x, uv.y );
+
+			}
+
+			// indices
+
+			for ( let i = 1; i <= segments; i ++ ) {
+
+				indices.push( i, i + 1, 0 );
+
+			}
+
+			// build geometry
+
+			this.setIndex( indices );
+			this.setAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
+			this.setAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
+			this.setAttribute( 'uv', new Float32BufferAttribute( uvs, 2 ) );
+
+		}
+
+	}
+
 	class CylinderBufferGeometry extends BufferGeometry {
 
 		constructor( radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 8, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2 ) {
@@ -56452,12 +56530,18 @@
 	const CONFIG = {
 		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+		GOALKEEPER_MIN_PASS_DISTANCE: 3, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
 		GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
 		PLAYER_COMFORT_ZONE: 2, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
-		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
+		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
-		PLAYER_RECEIVING_RANGE: 0.5 // how close the ball must be to a receiver before he starts chasing it
+		PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
+		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
+		PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
+		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
+		PLAYER_PASS_REQUEST_FAILURE: 0.1 // the likelihood that a pass request won't be noticed
+
 	};
 
 	const TEAM = {
@@ -56509,6 +56593,8 @@
 			this.stateMachine = new StateMachine( this );
 
 			this.steeringTarget = new Vector3$1();
+
+			this.manager = team.manager;
 
 		}
 
@@ -56901,7 +56987,31 @@
 
 		execute( goalkeeper ) {
 
-			// TODO
+			const pass = {
+				receiver: null,
+				target: new Vector3$1()
+			};
+
+			const team = goalkeeper.team;
+
+			if ( team.findPass( goalkeeper, CONFIG.PLAYER_MAX_PASSING_FORCE, CONFIG.GOALKEEPER_MIN_PASS_DISTANCE, pass ) !== null ) {
+
+				const ball = team.ball;
+
+				const force = new Vector3$1();
+				force.subVectors( pass.target, ball.position ).normalize().multiplyScalar( CONFIG.PLAYER_MAX_PASSING_FORCE );
+
+				ball.kick( force );
+
+				goalkeeper.pitch.isGoalKeeperInBallPossession = false;
+
+				team.sendMessage( pass.receiver, MESSAGE.RECEIVE_BALL, 0, { target: pass.target } ); // TODO: Call sendMessage on game entity (currently not possible because of missing manager reference)
+
+				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
+
+				return;
+
+			}
 
 			goalkeeper.velocity.set( 0, 0, 0 );
 
@@ -56946,15 +57056,7 @@
 
 			super.update( delta );
 
-			if ( this.stateMachine.in( GOALKEEPER_STATES.RETURN_HOME ) ) {
-
-				this.rotateTo( this.steeringTarget, delta );
-
-			} else {
-
-				this.rotateTo( this.team.ball.position, delta );
-
-			}
+			this.rotateTo( this.team.ball.position, delta );
 
 		}
 
@@ -57005,6 +57107,25 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
+	const _localPositionOfOpponent = new Vector3$1();
+	const _startPosition = new Vector3$1();
+	const _endPosition = new Vector3$1();
+	const _toPoint = new Vector3$1();
+	const _target$3 = new Vector3$1();
+	const _passes = [];
+	const _tangent1 = new Vector3$1();
+	const _tangent2 = new Vector3$1();
+
+	const _rotation = new Quaternion$1();
+	const _direction$2 = new Vector3$1();
+	const _scale$1 = new Vector3$1();
+
+	const _matrix$1 = new Matrix4$1();
+	const _inverseMatrix$3 = new Matrix4$1();
+
+	const _forward = new Vector3$1( 0, 0, 1 );
+	const _up = new Vector3$1( 0, 1, 0 );
+
 	class Team extends GameEntity {
 
 		constructor( color, ball, pitch, homeGoal, opposingGoal ) {
@@ -57038,12 +57159,6 @@
 
 		}
 
-		inControl() {
-
-			return this.controllingPlayer !== null;
-
-		}
-
 		areAllPlayersAtHome() {
 
 			for ( let i = 0, l = this.children.length; i < l; i ++ ) {
@@ -57059,6 +57174,94 @@
 			}
 
 			return true;
+
+		}
+
+		canShoot( kickingPower, shootTarget ) {
+
+			const halfWidth = this.opposingGoal.width / 2;
+
+			for ( let i = 0; i < CONFIG.PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE; i ++ ) {
+
+				const ball = this.ball;
+				const ballPosition = ball.position;
+
+				shootTarget.copy( this.opposingGoal.position );
+
+				const minZ = this.opposingGoal.position.z - halfWidth + ball.boundingRadius;
+				const maxZ = this.opposingGoal.position.z + halfWidth - ball.boundingRadius;
+
+				shootTarget.z = MathUtils$1.randInt( minZ, maxZ );
+
+				const time = ball.timeToCoverDistance( ballPosition, shootTarget, kickingPower );
+
+				if ( time >= 0 ) {
+
+					if ( this.isPassSafeFromAllOpponents( ballPosition, shootTarget, null, kickingPower ) ) {
+
+						return true;
+
+					}
+
+				}
+
+			}
+
+			return false;
+
+		}
+
+		findPass( passer, passPower, minPassingDistance, pass ) {
+
+			let minDistance = Infinity;
+			const minPassingSquaredDistance = minPassingDistance * minPassingDistance;
+
+			pass.receiver = null;
+
+			const players = this.children;
+
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+				const player = players[ i ];
+
+				const squaredDistanceToReceiver = passer.position.squaredDistanceTo( player.position );
+
+				if ( player !== passer && squaredDistanceToReceiver >= minPassingSquaredDistance ) {
+
+					if ( this._getBestPassToReceiver( passer, player, passPower, _target$3 ) ) {
+
+						const distanceToGoal = _target$3.squaredDistanceTo( this.opposingGoal.position );
+
+						if ( distanceToGoal < minDistance ) {
+
+							minDistance = distanceToGoal;
+
+							pass.receiver = player;
+							pass.target.copy( _target$3 );
+
+						}
+
+					}
+
+				}
+
+			}
+
+			if ( pass.receiver !== null ) {
+
+				return pass;
+
+			} else {
+
+				return null;
+
+			}
+
+		}
+
+		inControl() {
+
+			return this.controllingPlayer !== null;
 
 		}
 
@@ -57081,11 +57284,49 @@
 
 		}
 
+		isPassSafeFromAllOpponents( start, target, receiver, passingForce ) {
+
+			const opponents = this.opposingTeam.children;
+
+			_direction$2.subVectors( target, start ).normalize();
+			_rotation.lookAt( _forward, _direction$2, _up );
+
+			_matrix$1.compose( start, _rotation, _scale$1 );
+			_matrix$1.getInverse( _inverseMatrix$3 );
+
+			for ( let i = 0, l = opponents.length; i < l; i ++ ) {
+
+				const opponent = opponents[ i ];
+
+				if ( this._isPassSafeFromOpponent( start, target, receiver, opponent, passingForce, _inverseMatrix$3 ) === false ) {
+
+					return false;
+
+				}
+
+			}
+
+			return true;
+
+		}
+
 		lostControl() {
 
 			this.controllingPlayer = null;
 			this.receivingPlayer = null;
 			this.supportingPlayer = null;
+
+		}
+
+		requestPass( requester ) {
+
+			if ( Math.random() > CONFIG.PLAYER_PASS_REQUEST_FAILURE ) return;
+
+			if ( this.inControl() && this.isPassSafeFromAllOpponents( this.controllingPlayer.position, requester.position, requester, CONFIG.PLAYER_MAX_PASSING_FORCE ) ) {
+
+				this.sendMessage( this.controllingPlayer, MESSAGE.PASS_TO_ME, 0, { requester: requester } );
+
+			}
 
 		}
 
@@ -57214,6 +57455,127 @@
 				}
 
 			}
+
+		}
+
+		_computeTangentPoints( C, R, P, T1, T2 ) {
+
+			_toPoint.subVectors( P, C );
+			const squaredlength = _toPoint.squaredLength();
+			const RSq = R * R;
+
+			if ( squaredlength <= RSq ) {
+
+				// P is inside or on the circle
+				return false;
+
+			}
+
+			const squaredLengthInverse = 1 / squaredlength;
+			const root = Math.sqrt( squaredlength - RSq );
+
+			T1.x = C.x + R * ( R * _toPoint.x - _toPoint.z * root ) * squaredLengthInverse;
+			T1.z = C.z + R * ( R * _toPoint.z + _toPoint.x * root ) * squaredLengthInverse;
+			T2.x = C.x + R * ( R * _toPoint.x + _toPoint.z * root ) * squaredLengthInverse;
+			T2.z = C.z + R * ( R * _toPoint.z - _toPoint.x * root ) * squaredLengthInverse;
+
+			return true;
+
+		}
+
+		_getBestPassToReceiver( passer, receiver, passPower, passTarget ) {
+
+			let result = false;
+
+			let minDistance = Infinity;
+
+			_passes.length = 0;
+
+			const ball = this.ball;
+
+			const t = ball.timeToCoverDistance( ball.position, receiver.position, passPower );
+
+			if ( t < 0 ) return false;
+
+			const interceptRange = t * receiver.maxSpeed * 0.3;
+
+			this._computeTangentPoints( receiver.position, interceptRange, ball.position, _tangent1, _tangent2 );
+
+			_passes.push( _tangent1, receiver.position, _tangent2 );
+
+			for ( let i = 0, l = _passes.length; i < l; i ++ ) {
+
+				const pass = _passes[ i ];
+
+				const distanceToGoal = pass.squaredDistanceTo( this.opposingGoal.position );
+
+				if ( distanceToGoal < minDistance && this.pitch.playingArea.isInside( pass ) && this.isPassSafeFromAllOpponents( ball.position, pass, receiver, passPower ) ) {
+
+					minDistance = distanceToGoal;
+
+					passTarget.copy( pass );
+
+					result = true;
+
+				}
+
+			}
+
+			return result;
+
+		}
+
+		_isPassSafeFromOpponent( start, target, receiver, opponent, passingForce, inverseMatrix ) {
+
+			_localPositionOfOpponent.copy( opponent.position ).applyMatrix4( inverseMatrix );
+
+			// 1. Test
+
+			if ( _localPositionOfOpponent.z < 0 ) {
+
+				return true;
+
+			}
+
+			// 2. Test
+
+			if ( start.squaredDistanceTo( target ) < start.squaredDistanceTo( opponent.position ) ) {
+
+				if ( receiver !== null ) {
+
+					if ( target.squaredDistanceTo( opponent.position ) > target.squaredDistanceTo( receiver.position ) ) {
+
+						return true;
+
+					} else {
+
+						return false;
+
+					}
+
+				} else {
+
+					return true;
+
+				}
+
+			}
+
+			// 3. Test
+
+			_endPosition.set( _localPositionOfOpponent.z, 0, 0 );
+
+			const t = this.ball.timeToCoverDistance( _startPosition, _endPosition, passingForce );
+
+			const reach = opponent.maxSpeed * t + this.ball.boundingRadius + opponent.boundingRadius;
+
+			if ( reach < Math.abs( _localPositionOfOpponent.x ) ) {
+
+				return true;
+
+			}
+
+			return false;
 
 		}
 
@@ -57445,10 +57807,11 @@
 			teamRed.returnAllFieldPlayersToHome( true );
 
 			this._debugPitch( pitch );
+			//this._debugTeam( teamRed );
 
 			setTimeout( () => {
 
-				ball.kick( new Vector3$1( 0, 0, 2 ) );
+				ball.kick( new Vector3$1( 3, 0, 0 ) );
 
 			}, 1000 );
 
@@ -57558,6 +57921,43 @@
 				this.scene.add( helper );
 
 			}
+
+		}
+
+		_debugTeam( team ) {
+
+			const C = new Vector3$1();
+			const R = 4;
+			const P = new Vector3$1( - 8, 0, 0 );
+			const T1 = new Vector3$1();
+			const T2 = new Vector3$1();
+
+			team._computeTangentPoints( C, R, P, T1, T2 );
+
+			const circleGeometry = new CircleBufferGeometry( R, 32 );
+			circleGeometry.rotateX( Math.PI * - 0.5 );
+			const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
+			const circle = new Mesh( circleGeometry, circleMaterial );
+			circle.position.copy( C );
+			circle.position.y = 0.01;
+			this.scene.add( circle );
+
+			const pointGeometry = new SphereBufferGeometry( 0.1 );
+			pointGeometry.translate( 0, 0.05, 0 );
+			const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
+
+			const point1 = new Mesh( pointGeometry, pointMaterial );
+			point1.position.copy( T1 );
+			this.scene.add( point1 );
+
+			const point2 = new Mesh( pointGeometry, pointMaterial );
+			point2.position.copy( T2 );
+			this.scene.add( point2 );
+
+			const point3 = new Mesh( pointGeometry, pointMaterial );
+			point3.position.copy( P );
+			this.scene.add( point3 );
+
 
 		}
 
