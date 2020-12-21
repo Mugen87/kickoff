@@ -19,7 +19,7 @@ class Goal extends GameEntity {
 
 	getDirection( direction ) {
 
-		if ( this.color === TEAM.READ ) {
+		if ( this.color === TEAM.RED ) {
 
 			direction.set( - 1, 0, 0 );
 

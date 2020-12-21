@@ -15,13 +15,6 @@ class Goalkeeper extends Player {
 
 		super( ROLE.GOALKEEPER, team, pitch, homeRegionId );
 
-		this.stateMachine.globalState = new GlobalState();
-
-		this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState() );
-		this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
-		this.stateMachine.add( GOALKEEPER_STATES.INTERCEPT_BALL, new InterceptBallState() );
-		this.stateMachine.add( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY, new PutBallBackInPlayState() );
-
 		//
 
 		const arriveBehavior = new ArriveBehavior();
@@ -31,6 +24,17 @@ class Goalkeeper extends Player {
 		const pursuitBehavior = new PursuitBehavior();
 		pursuitBehavior.active = false;
 		this.steering.add( pursuitBehavior );
+
+		//
+
+		this.stateMachine.globalState = new GlobalState();
+
+		this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState() );
+		this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
+		this.stateMachine.add( GOALKEEPER_STATES.INTERCEPT_BALL, new InterceptBallState() );
+		this.stateMachine.add( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY, new PutBallBackInPlayState() );
+
+		this.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
 
 	}
 

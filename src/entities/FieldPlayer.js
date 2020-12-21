@@ -15,6 +15,23 @@ class FieldPlayer extends Player {
 
 		this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
+		//
+
+		const seekBehavior = new SeekBehavior();
+		seekBehavior.active = false;
+		this.steering.add( seekBehavior );
+
+		const arriveBehavior = new ArriveBehavior();
+		arriveBehavior.active = false;
+		arriveBehavior.deceleration = 2;
+		this.steering.add( arriveBehavior );
+
+		const pursuitBehavior = new PursuitBehavior();
+		pursuitBehavior.active = false;
+		this.steering.add( pursuitBehavior );
+
+		//
+
 		this.stateMachine.globalState = new GlobalState();
 
 		this.stateMachine.add( FIELDPLAYER_STATES.CHASE_BALL, new ChaseBallState() );
@@ -25,17 +42,7 @@ class FieldPlayer extends Player {
 		this.stateMachine.add( FIELDPLAYER_STATES.SUPPORT_ATTACKER, new SupportAttackerState() );
 		this.stateMachine.add( FIELDPLAYER_STATES.WAIT, new WaitState() );
 
-		const seekBehavior = new SeekBehavior();
-		seekBehavior.active = false;
-		this.steering.add( seekBehavior );
-
-		const arriveBehavior = new ArriveBehavior();
-		arriveBehavior.active = false;
-		this.steering.add( arriveBehavior );
-
-		const pursuitBehavior = new PursuitBehavior();
-		pursuitBehavior.active = false;
-		this.steering.add( pursuitBehavior );
+		this.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
 
 	}
 
@@ -43,7 +50,7 @@ class FieldPlayer extends Player {
 
 		super.update( delta );
 
-		if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) ) {
+		if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) || this.stateMachine.in( FIELDPLAYER_STATES.KICK_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.WAIT ) ) {
 
 			this.rotateTo( this.team.ball.position, delta );
 

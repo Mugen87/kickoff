@@ -27,22 +27,23 @@ export const TEAM_STATES = {
 export const CONFIG = {
 	GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 	GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
-	GOALKEEPER_MIN_PASS_DISTANCE: 3, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
+	GOALKEEPER_MIN_PASS_DISTANCE: 2, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
 	GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
-	PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 1, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
+	PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 0.5, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
 	PLAYER_CHANCE_ATTEMPT_POT_SHOT: 0.005, // the chance a player might take a random pot shot at the goal
-	PLAYER_COMFORT_ZONE: 2, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
+	PLAYER_COMFORT_ZONE: 3, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
 	PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
 	PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 	PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
-	PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.6, // the force used for dribbling while turning around
-	PLAYER_MAX_DRIBBLE_FORCE: 1, // the force used for dribbling
-	PLAYER_MAX_PASSING_FORCE: 2.5, // the force used for passing
+	PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
+	PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
+	PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
 	PLAYER_MAX_SHOOTING_FORCE: 4, // the force used for shooting at the goal
 	PLAYER_MAX_SPEED_WITH_BALL: 0.8, // max speed with ball
 	PLAYER_MAX_SPEED_WITHOUT_BALL: 1, // max speed without ball
+	PLAYER_MIN_PASS_DISTANCE: 5, // the minimum distance a receiving player must be from the passing player
 	PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
-	PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
+	PLAYER_RECEIVING_RANGE: 6, // how close the ball must be to a receiver before he starts chasing it
 	PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
 	PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
 	PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous

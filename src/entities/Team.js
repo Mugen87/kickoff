@@ -100,7 +100,7 @@ class Team extends GameEntity {
 			const minZ = this.opposingGoal.position.z - halfWidth + ball.boundingRadius;
 			const maxZ = this.opposingGoal.position.z + halfWidth - ball.boundingRadius;
 
-			shootTarget.z = MathUtils.randInt( minZ, maxZ ); // random
+			shootTarget.z = MathUtils.randFloat( minZ, maxZ ); // random
 
 			const time = ball.timeToCoverDistance( ballPosition, shootTarget, kickingPower );
 
@@ -514,7 +514,7 @@ class Team extends GameEntity {
 
 		if ( t < 0 ) return false;
 
-		const interceptRange = t * receiver.maxSpeed * 0.3;
+		const interceptRange = t * receiver.maxSpeed * 0.2;
 
 		this._computeTangentPoints( receiver.position, interceptRange, ball.position, _tangent1, _tangent2 );
 

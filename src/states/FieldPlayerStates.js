@@ -285,7 +285,7 @@ class KickBallState extends State {
 
 		// test if there are any potential candidates available to receive a pass
 
-		if ( player.isThreatened() && player.team.findPass( player, power, CONFIG.PLAYER_MIN_PASS_DISTANCE, pass ) ) {
+		if ( player.isThreatened() && team.findPass( player, power, CONFIG.PLAYER_MIN_PASS_DISTANCE, pass ) ) {
 
 			// add some noise to the kick
 
@@ -334,7 +334,7 @@ class ReceiveBallState extends State {
 
 		team.setControl( player );
 
-		// there are two types of receive behavior. One uses arrive to direct the
+		// There are two types of receive behavior. One uses arrive to direct the
 		// receiver to the position sent by the passer in its message. The other
 		// uses the pursuit behavior to pursue the ball. This statement selects
 		// between them dependent on the probability
@@ -523,6 +523,15 @@ class SupportAttackerState extends State {
 
 		}
 
+		// if the player becomes suddenly the closest player to the ball AND there is no receiving player then chase the ball
+
+		if ( player.isClosestTeamMemberToBall() && player.team.receivingPlayer === null ) {
+
+			player.stateMachine.changeTo( FIELDPLAYER_STATES.CHASE_BALL );
+			return;
+
+		}
+
 		// if the best supporting spot changes, change the steering target
 
 		if ( team.getSupportPosition().equals( player.steeringTarget ) ) {
@@ -588,13 +597,7 @@ class WaitState extends State {
 
 	enter( player ) {
 
-		const pitch = player.pitch;
-
-		if ( pitch.isPlaying ) {
-
-			player.steeringTarget.copy( player.getHomeRegion().center );
-
-		}
+		player.velocity.set( 0, 0, 0 );
 
 	}
 
@@ -602,39 +605,6 @@ class WaitState extends State {
 
 		const team = player.team;
 		const pitch = player.pitch;
-
-		// if the player has been jostled out of position, get back in position
-
-		const arriveBehavior = player.steering.behaviors[ 1 ];
-
-		if ( player.atTarget() === false ) {
-
-			arriveBehavior.active = true;
-			arriveBehavior.target = player.steeringTarget;
-			player.rotateTo( player.steeringTarget, player.currentDelta );
-			return; // TODO: Players ignore situations where they are the closest member to the ball
-
-		} else {
-
-			arriveBehavior.active = false;
-			arriveBehavior.target = null;
-			player.rotateTo( team.ball.position, player.currentDelta );
-
-			player.velocity.set( 0, 0, 0 );
-
-		}
-
-		// if this player's team is controlling AND this player is not the
-		// attacker AND is further up the field than the attacker AND if the controlling player
-		// is not he goalkeeper he should request a pass
-
-		if ( team.inControl() && player.isControllingPlayer() === false && player.isAheadOfAttacker() && team.controllingPlayer.role !== ROLE.GOALKEEPER ) {
-
-			team.requestPass( player );
-
-			return;
-
-		}
 
 		if ( pitch.isPlaying ) {
 
@@ -645,8 +615,19 @@ class WaitState extends State {
 			if ( player.isClosestTeamMemberToBall() && team.receivingPlayer === null && pitch.isGoalKeeperInBallPossession === false ) {
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.CHASE_BALL );
+				return;
 
 			}
+
+		}
+
+		// if this player's team is controlling AND this player is not the
+		// attacker AND is further up the field than the attacker AND if the controlling player
+		// is not he goalkeeper he should request a pass
+
+		if ( team.inControl() && player.isControllingPlayer() === false && player.isAheadOfAttacker() && team.controllingPlayer.role !== ROLE.GOALKEEPER ) {
+
+			team.requestPass( player );
 
 		}
 

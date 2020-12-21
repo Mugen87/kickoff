@@ -2,8 +2,8 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, CircleBufferGeometry } from 'three';
-import { EntityManager, Time, Vector3 } from 'yuka';
+import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture } from 'three';
+import { EntityManager, Time } from 'yuka';
 
 import AssetManager from './AssetManager.js';
 import Ball from '../entities/Ball.js';
@@ -221,22 +221,7 @@ class World {
 
 		// temp
 
-		teamRed.setupTeamPositions();
-		teamBlue.setupTeamPositions();
-
-		teamRed.computeBestSupportingPosition();
-
-		teamRed.children[ 0 ].position.set( 5, 0, 0 );
-		teamRed.returnAllFieldPlayersToHome( true );
-
 		this._debugPitch( pitch );
-		this._debugTeam( teamRed );
-
-		setTimeout( () => {
-
-			ball.kick( new Vector3( 3, 0, 0 ) );
-
-		}, 1000 );
 
 	}
 
@@ -252,9 +237,9 @@ class World {
 
 	}
 
-	_createGoal( width, height ) {
+	_createGoal( width, height, color ) {
 
-		const goal = new Goal( width, height );
+		const goal = new Goal( width, height, color );
 		const goalMesh = this.goalMesh.clone();
 		goal.setRenderComponent( goalMesh, sync );
 

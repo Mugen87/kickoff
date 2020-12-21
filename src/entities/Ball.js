@@ -6,10 +6,6 @@ import { MovingEntity, Ray, Vector3 } from 'yuka';
 
 const _acceleration = new Vector3();
 const _brakingForce = new Vector3();
-const _direction = new Vector3();
-const _ut = new Vector3();
-const _halfATSquared = new Vector3();
-
 const _ray = new Ray();
 const _intersectionPoint = new Vector3();
 
@@ -19,13 +15,15 @@ class Ball extends MovingEntity {
 
 		super();
 
+		this.boundingRadius = 0.1;
+
 		this.owner = null;
 		this.pitch = pitch;
 
 		this.mass = 0.44; // 440g
 		this.maxSpeed = 42; // 42 m/s ~ 150km/h
 
-		this.friction = - 1; // This value decreases the velocity of the ball over time.
+		this.friction = - 0.8; // This value decreases the velocity of the ball over time.
 
 		// internals
 
@@ -54,20 +52,6 @@ class Ball extends MovingEntity {
 		this._collisionDetection();
 
 	}
-
-	// advance( delta, position ) {
-
-	// 	// using the equation s = uΔt + 1/2 * aΔt^2
-
-	// 	_ut.copy( this.velocity ).multiplyScalar( delta );
-
-	// 	_direction.copy( this.velocity ).normalize();
-
-	// 	_halfATSquared.copy( _direction ).multiplyScalar( 0.5 * this.friction * delta * delta );
-
-	// 	return position.copy( this.position ).add( _ut ).add( _halfATSquared );
-
-	// }
 
 	kick( force ) {
 

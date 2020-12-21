@@ -56127,7 +56127,6 @@
 
 	const _acceleration = new Vector3$1();
 	const _brakingForce = new Vector3$1();
-
 	const _ray$3 = new Ray$1();
 	const _intersectionPoint$1 = new Vector3$1();
 
@@ -56137,13 +56136,15 @@
 
 			super();
 
+			this.boundingRadius = 0.1;
+
 			this.owner = null;
 			this.pitch = pitch;
 
 			this.mass = 0.44; // 440g
 			this.maxSpeed = 42; // 42 m/s ~ 150km/h
 
-			this.friction = - 1; // This value decreases the velocity of the ball over time.
+			this.friction = - 0.8; // This value decreases the velocity of the ball over time.
 
 			// internals
 
@@ -56172,20 +56173,6 @@
 			this._collisionDetection();
 
 		}
-
-		// advance( delta, position ) {
-
-		// 	// using the equation s = uΔt + 1/2 * aΔt^2
-
-		// 	_ut.copy( this.velocity ).multiplyScalar( delta );
-
-		// 	_direction.copy( this.velocity ).normalize();
-
-		// 	_halfATSquared.copy( _direction ).multiplyScalar( 0.5 * this.friction * delta * delta );
-
-		// 	return position.copy( this.position ).add( _ut ).add( _halfATSquared );
-
-		// }
 
 		kick( force ) {
 
@@ -56320,22 +56307,23 @@
 	const CONFIG = {
 		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
-		GOALKEEPER_MIN_PASS_DISTANCE: 3, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
+		GOALKEEPER_MIN_PASS_DISTANCE: 2, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
 		GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
-		PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 1, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
+		PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 0.5, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
 		PLAYER_CHANCE_ATTEMPT_POT_SHOT: 0.005, // the chance a player might take a random pot shot at the goal
-		PLAYER_COMFORT_ZONE: 2, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
+		PLAYER_COMFORT_ZONE: 3, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
 		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
 		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
-		PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.6, // the force used for dribbling while turning around
-		PLAYER_MAX_DRIBBLE_FORCE: 1, // the force used for dribbling
-		PLAYER_MAX_PASSING_FORCE: 2.5, // the force used for passing
+		PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
+		PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
+		PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
 		PLAYER_MAX_SHOOTING_FORCE: 4, // the force used for shooting at the goal
 		PLAYER_MAX_SPEED_WITH_BALL: 0.8, // max speed with ball
 		PLAYER_MAX_SPEED_WITHOUT_BALL: 1, // max speed without ball
+		PLAYER_MIN_PASS_DISTANCE: 5, // the minimum distance a receiving player must be from the passing player
 		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
-		PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
+		PLAYER_RECEIVING_RANGE: 6, // how close the ball must be to a receiver before he starts chasing it
 		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
 		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
 		PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
@@ -56384,7 +56372,7 @@
 
 		getDirection( direction ) {
 
-			if ( this.color === TEAM.READ ) {
+			if ( this.color === TEAM.RED ) {
 
 				direction.set( - 1, 0, 0 );
 
@@ -56699,7 +56687,7 @@
 
 			if ( team.inControl() === false ) {
 
-				team.stateMachine.changeTo( TEAM_STATES.ATTACKING );
+				team.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 			}
 
@@ -57051,7 +57039,7 @@
 
 			// test if there are any potential candidates available to receive a pass
 
-			if ( player.isThreatened() && player.team.findPass( player, power, CONFIG.PLAYER_MIN_PASS_DISTANCE, pass ) ) {
+			if ( player.isThreatened() && team.findPass( player, power, CONFIG.PLAYER_MIN_PASS_DISTANCE, pass ) ) {
 
 				// add some noise to the kick
 
@@ -57100,7 +57088,7 @@
 
 			team.setControl( player );
 
-			// there are two types of receive behavior. One uses arrive to direct the
+			// There are two types of receive behavior. One uses arrive to direct the
 			// receiver to the position sent by the passer in its message. The other
 			// uses the pursuit behavior to pursue the ball. This statement selects
 			// between them dependent on the probability
@@ -57289,6 +57277,15 @@
 
 			}
 
+			// if the player becomes suddenly the closest player to the ball AND there is no receiving player then chase the ball
+
+			if ( player.isClosestTeamMemberToBall() && player.team.receivingPlayer === null ) {
+
+				player.stateMachine.changeTo( FIELDPLAYER_STATES.CHASE_BALL );
+				return;
+
+			}
+
 			// if the best supporting spot changes, change the steering target
 
 			if ( team.getSupportPosition().equals( player.steeringTarget ) ) {
@@ -57354,13 +57351,7 @@
 
 		enter( player ) {
 
-			const pitch = player.pitch;
-
-			if ( pitch.isPlaying ) {
-
-				player.steeringTarget.copy( player.getHomeRegion().center );
-
-			}
+			player.velocity.set( 0, 0, 0 );
 
 		}
 
@@ -57368,39 +57359,6 @@
 
 			const team = player.team;
 			const pitch = player.pitch;
-
-			// if the player has been jostled out of position, get back in position
-
-			const arriveBehavior = player.steering.behaviors[ 1 ];
-
-			if ( player.atTarget() === false ) {
-
-				arriveBehavior.active = true;
-				arriveBehavior.target = player.steeringTarget;
-				player.rotateTo( player.steeringTarget, player.currentDelta );
-				return; // TODO: Players ignore situations where they are the closest member to the ball
-
-			} else {
-
-				arriveBehavior.active = false;
-				arriveBehavior.target = null;
-				player.rotateTo( team.ball.position, player.currentDelta );
-
-				player.velocity.set( 0, 0, 0 );
-
-			}
-
-			// if this player's team is controlling AND this player is not the
-			// attacker AND is further up the field than the attacker AND if the controlling player
-			// is not he goalkeeper he should request a pass
-
-			if ( team.inControl() && player.isControllingPlayer() === false && player.isAheadOfAttacker() && team.controllingPlayer.role !== ROLE.GOALKEEPER ) {
-
-				team.requestPass( player );
-
-				return;
-
-			}
 
 			if ( pitch.isPlaying ) {
 
@@ -57411,8 +57369,19 @@
 				if ( player.isClosestTeamMemberToBall() && team.receivingPlayer === null && pitch.isGoalKeeperInBallPossession === false ) {
 
 					player.stateMachine.changeTo( FIELDPLAYER_STATES.CHASE_BALL );
+					return;
 
 				}
+
+			}
+
+			// if this player's team is controlling AND this player is not the
+			// attacker AND is further up the field than the attacker AND if the controlling player
+			// is not he goalkeeper he should request a pass
+
+			if ( team.inControl() && player.isControllingPlayer() === false && player.isAheadOfAttacker() && team.controllingPlayer.role !== ROLE.GOALKEEPER ) {
+
+				team.requestPass( player );
 
 			}
 
@@ -57435,6 +57404,8 @@
 
 			super();
 
+			this.boundingRadius = 0.2;
+			this.maxSpeed = 3;
 			this.updateOrientation = false;
 
 			this.role = role;
@@ -57651,6 +57622,23 @@
 
 			this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
+			//
+
+			const seekBehavior = new SeekBehavior();
+			seekBehavior.active = false;
+			this.steering.add( seekBehavior );
+
+			const arriveBehavior = new ArriveBehavior();
+			arriveBehavior.active = false;
+			arriveBehavior.deceleration = 2;
+			this.steering.add( arriveBehavior );
+
+			const pursuitBehavior = new PursuitBehavior();
+			pursuitBehavior.active = false;
+			this.steering.add( pursuitBehavior );
+
+			//
+
 			this.stateMachine.globalState = new GlobalState();
 
 			this.stateMachine.add( FIELDPLAYER_STATES.CHASE_BALL, new ChaseBallState() );
@@ -57661,17 +57649,7 @@
 			this.stateMachine.add( FIELDPLAYER_STATES.SUPPORT_ATTACKER, new SupportAttackerState() );
 			this.stateMachine.add( FIELDPLAYER_STATES.WAIT, new WaitState() );
 
-			const seekBehavior = new SeekBehavior();
-			seekBehavior.active = false;
-			this.steering.add( seekBehavior );
-
-			const arriveBehavior = new ArriveBehavior();
-			arriveBehavior.active = false;
-			this.steering.add( arriveBehavior );
-
-			const pursuitBehavior = new PursuitBehavior();
-			pursuitBehavior.active = false;
-			this.steering.add( pursuitBehavior );
+			this.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
 
 		}
 
@@ -57679,7 +57657,7 @@
 
 			super.update( delta );
 
-			if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) ) {
+			if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) || this.stateMachine.in( FIELDPLAYER_STATES.KICK_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.WAIT ) ) {
 
 				this.rotateTo( this.team.ball.position, delta );
 
@@ -57929,13 +57907,6 @@
 
 			super( ROLE.GOALKEEPER, team, pitch, homeRegionId );
 
-			this.stateMachine.globalState = new GlobalState$1();
-
-			this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState$1() );
-			this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
-			this.stateMachine.add( GOALKEEPER_STATES.INTERCEPT_BALL, new InterceptBallState() );
-			this.stateMachine.add( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY, new PutBallBackInPlayState() );
-
 			//
 
 			const arriveBehavior = new ArriveBehavior();
@@ -57945,6 +57916,17 @@
 			const pursuitBehavior = new PursuitBehavior();
 			pursuitBehavior.active = false;
 			this.steering.add( pursuitBehavior );
+
+			//
+
+			this.stateMachine.globalState = new GlobalState$1();
+
+			this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState$1() );
+			this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
+			this.stateMachine.add( GOALKEEPER_STATES.INTERCEPT_BALL, new InterceptBallState() );
+			this.stateMachine.add( GOALKEEPER_STATES.PUT_BALL_BACK_IN_PLAY, new PutBallBackInPlayState() );
+
+			this.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
 
 		}
 
@@ -58094,7 +58076,7 @@
 				const minZ = this.opposingGoal.position.z - halfWidth + ball.boundingRadius;
 				const maxZ = this.opposingGoal.position.z + halfWidth - ball.boundingRadius;
 
-				shootTarget.z = MathUtils$1.randInt( minZ, maxZ ); // random
+				shootTarget.z = MathUtils$1.randFloat( minZ, maxZ ); // random
 
 				const time = ball.timeToCoverDistance( ballPosition, shootTarget, kickingPower );
 
@@ -58508,7 +58490,7 @@
 
 			if ( t < 0 ) return false;
 
-			const interceptRange = t * receiver.maxSpeed * 0.3;
+			const interceptRange = t * receiver.maxSpeed * 0.2;
 
 			this._computeTangentPoints( receiver.position, interceptRange, ball.position, _tangent1, _tangent2 );
 
@@ -58812,22 +58794,7 @@
 
 			// temp
 
-			teamRed.setupTeamPositions();
-			teamBlue.setupTeamPositions();
-
-			teamRed.computeBestSupportingPosition();
-
-			teamRed.children[ 0 ].position.set( 5, 0, 0 );
-			teamRed.returnAllFieldPlayersToHome( true );
-
 			this._debugPitch( pitch );
-			this._debugTeam( teamRed );
-
-			setTimeout( () => {
-
-				ball.kick( new Vector3$1( 3, 0, 0 ) );
-
-			}, 1000 );
 
 		}
 
@@ -58843,9 +58810,9 @@
 
 		}
 
-		_createGoal( width, height ) {
+		_createGoal( width, height, color ) {
 
-			const goal = new Goal$1( width, height );
+			const goal = new Goal$1( width, height, color );
 			const goalMesh = this.goalMesh.clone();
 			goal.setRenderComponent( goalMesh, sync );
 

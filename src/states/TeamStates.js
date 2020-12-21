@@ -18,7 +18,7 @@ class AttackingState extends State {
 
 		if ( team.inControl() === false ) {
 
-			team.stateMachine.changeTo( TEAM_STATES.ATTACKING );
+			team.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 		}
 
