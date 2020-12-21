@@ -160,7 +160,6 @@ class World {
 		//
 
 		const goalGeometry = new PlaneBufferGeometry( this.goalDimensions.width, this.goalDimensions.height );
-		goalGeometry.rotateY( Math.PI * - 0.5 );
 		goalGeometry.translate( 0, 0.5, 0 );
 		const goalMaterial = new MeshPhongMaterial( { color: 0xffff00 } );
 
@@ -194,16 +193,18 @@ class World {
 
 	_initGame() {
 
-		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height );
+		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
+		goalRed.rotation.fromEuler( 0, Math.PI * - 0.5, 0 );
 		goalRed.position.x = 10;
 		this.entityManager.add( goalRed );
 
-		const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height );
+		const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.BLUE );
 		goalBlue.position.x = - 10;
-		goalBlue.rotation.fromEuler( 0, Math.PI, 0 );
+		goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
 		this.entityManager.add( goalBlue );
 
 		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
+		pitch.isPlaying = true;
 		this.entityManager.add( pitch );
 
 		const ball = this._createBall( pitch );

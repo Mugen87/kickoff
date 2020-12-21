@@ -14,7 +14,7 @@ class GlobalState extends State {
 
 		switch ( telegram.message ) {
 
-			case MESSAGE.GO_HOME:
+			case MESSAGE.RETURN_HOME:
 
 				goalkeeper.setDefaultHomeRegion();
 

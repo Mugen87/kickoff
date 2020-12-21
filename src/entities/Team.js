@@ -120,6 +120,37 @@ class Team extends GameEntity {
 
 	}
 
+	computeBestSupportingAttacker() {
+
+		let minDistance = Infinity;
+		let bestPlayer = null;
+
+		const players = this.children;
+
+		for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+			const player = players[ i ];
+
+			if ( player.role === ROLE.ATTACKER && player !== this.controllingPlayer ) {
+
+				const distance = player.position.squaredDistanceTo( this._supportSpotCalculator.getBestSupportingPosition() );
+
+				if ( distance < minDistance ) {
+
+					minDistance = distance;
+
+					bestPlayer = player;
+
+				}
+
+			}
+
+		}
+
+		return bestPlayer;
+
+	}
+
 	computeBestSupportingPosition() {
 
 		this._supportSpotCalculator.computeBestSupportingPosition();
@@ -169,6 +200,36 @@ class Team extends GameEntity {
 		} else {
 
 			return null;
+
+		}
+
+	}
+
+	findSupport() {
+
+		if ( this.supportingPlayer === null ) {
+
+			this.supportingPlayer = this.computeBestSupportingAttacker();
+
+			if ( this.supportingPlayer !== null ) {
+
+				this.sendMessage( this.supportingPlayer, MESSAGE.SUPPORT_ATTACKER );
+
+			}
+
+			return;
+
+		}
+
+		const bestSupportPlayer = this.computeBestSupportingAttacker();
+
+		if ( bestSupportPlayer !== null && bestSupportPlayer !== this.supportingPlayer ) {
+
+			this.sendMessage( this.supportingPlayer, MESSAGE.RETURN_HOME );
+
+			this.supportingPlayer = bestSupportPlayer;
+
+			this.sendMessage( this.supportingPlayer, MESSAGE.SUPPORT_ATTACKER );
 
 		}
 
@@ -261,13 +322,13 @@ class Team extends GameEntity {
 
 			if ( withGoalKeeper === true ) {
 
-				this.sendMessage( player, MESSAGE.GO_HOME );
+				this.sendMessage( player, MESSAGE.RETURN_HOME );
 
 			} else {
 
 				if ( player.role !== ROLE.GOALKEEPER ) {
 
-					this.sendMessage( player, MESSAGE.GO_HOME );
+					this.sendMessage( player, MESSAGE.RETURN_HOME );
 
 				}
 

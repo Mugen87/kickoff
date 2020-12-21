@@ -16,6 +16,8 @@ class Player extends Vehicle {
 
 		super();
 
+		this.updateOrientation = false;
+
 		this.role = role;
 
 		this.team = team;
@@ -35,9 +37,13 @@ class Player extends Vehicle {
 
 		this.steeringTarget = new Vector3();
 
+		this.currentDelta = 0;
+
 	}
 
 	update( delta ) {
+
+		this.currentDelta = delta;
 
 		this.stateMachine.update();
 
@@ -95,7 +101,7 @@ class Player extends Vehicle {
 
 	}
 
-	isAtTarget() {
+	atTarget() {
 
 		return this.position.squaredDistanceTo( this.steeringTarget ) < CONFIG.PLAYER_IN_TARGET_RANGE_SQ;
 
@@ -174,7 +180,7 @@ class Player extends Vehicle {
 
 	}
 
-	isInHotRegion() {
+	inHotRegion() {
 
 		return this.getDistanceToOpposingGoal() < ( this.pitch.playingArea.width / 3 );
 

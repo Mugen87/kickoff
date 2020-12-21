@@ -55,19 +55,19 @@ class Ball extends MovingEntity {
 
 	}
 
-	advance( delta, position ) {
+	// advance( delta, position ) {
 
-		// using the equation s = uΔt + 1/2 * aΔt^2
+	// 	// using the equation s = uΔt + 1/2 * aΔt^2
 
-		_ut.copy( this.velocity ).multiplyScalar( delta );
+	// 	_ut.copy( this.velocity ).multiplyScalar( delta );
 
-		_direction.copy( this.velocity ).normalize();
+	// 	_direction.copy( this.velocity ).normalize();
 
-		_halfATSquared.copy( _direction ).multiplyScalar( 0.5 * this.friction * delta * delta );
+	// 	_halfATSquared.copy( _direction ).multiplyScalar( 0.5 * this.friction * delta * delta );
 
-		return position.copy( this.position ).add( _ut ).add( _halfATSquared );
+	// 	return position.copy( this.position ).add( _ut ).add( _halfATSquared );
 
-	}
+	// }
 
 	kick( force ) {
 

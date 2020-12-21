@@ -15,8 +15,6 @@ class Goalkeeper extends Player {
 
 		super( ROLE.GOALKEEPER, team, pitch, homeRegionId );
 
-		this.updateOrientation = false;
-
 		this.stateMachine.globalState = new GlobalState();
 
 		this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState() );

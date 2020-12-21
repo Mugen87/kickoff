@@ -106,7 +106,7 @@ class SupportSpotCalculator {
 
 		if ( this._bestSupportSpot === null ) {
 
-			return this.calculateBestSupportingPosition();
+			return this.computeBestSupportingPosition();
 
 		} else {
 
