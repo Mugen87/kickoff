@@ -56458,6 +56458,11 @@
 		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
 		WAIT: 'WAIT'
 	};
+	const TEAM_STATES = {
+		ATTACKING: 'ATTACKING',
+		DEFENDING: 'DEFENDING',
+		PREPARE_FOR_KICKOFF: 'PREPARE_FOR_KICKOFF'
+	};
 	const CONFIG = {
 		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
@@ -56590,7 +56595,13 @@
 
 			}
 
-			return this._bestSupportSpot.position;
+			if ( this._bestSupportSpot !== null ) {
+
+				return this._bestSupportSpot.position;
+
+			}
+
+			return null;
 
 		}
 
@@ -56654,6 +56665,91 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
+	class AttackingState extends State {
+
+		enter( team ) {
+
+			team.setupTeamPositions();
+			team.updateSteeringTargetOfPlayers();
+
+		}
+
+		execute( team ) {
+
+			if ( team.inControl() === false ) {
+
+				team.stateMachine.changeTo( TEAM_STATES.ATTACKING );
+
+			}
+
+			team.computeBestSupportingPosition();
+
+		}
+
+		exit( team ) {
+
+			team.lostControl();
+
+		}
+
+	}
+
+	class DefendingState extends State {
+
+		enter( team ) {
+
+			team.setupTeamPositions();
+			team.updateSteeringTargetOfPlayers();
+
+		}
+
+		execute( team ) {
+
+			if ( team.inControl() ) {
+
+				team.stateMachine.changeTo( TEAM_STATES.ATTACKING );
+
+			}
+
+		}
+
+	}
+
+	class PrepareForKickOffState extends State {
+
+		enter( team ) {
+
+			team.receivingPlayer = null;
+			team.playerClosestToBall = null;
+			team.controllingPlayer = null;
+			team.supportingPlayer = null;
+
+			team.returnAllFieldPlayersToHome( true );
+
+		}
+
+		execute( team ) {
+
+			if ( team.areAllPlayersAtHome() && team.opposingTeam.areAllPlayersAtHome() ) {
+
+				team.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+			}
+
+		}
+
+		exit( team ) {
+
+			team.pitch.isPlaying = true;
+
+		}
+
+	}
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
 	const _quaterion = new Quaternion$1();
 	const _displacement = new Vector3$1();
 	const _direction$1 = new Vector3$1();
@@ -56673,6 +56769,8 @@
 			this.homeRegionId = homeRegionId;
 			this.defaultRegionId = homeRegionId;
 
+			this.position.copy( pitch.getRegionById( homeRegionId ).center );
+
 			// Must be in the range [0,1]. Adjusts the amount of noise added to a kick.
 			// The lower the value the worse the player gets.
 
@@ -56681,8 +56779,6 @@
 			this.stateMachine = new StateMachine( this );
 
 			this.steeringTarget = new Vector3$1();
-
-			this.manager = team.manager;
 
 		}
 
@@ -57224,8 +57320,8 @@
 			this.ball = ball;
 			this.pitch = pitch;
 			this.homeGoal = homeGoal;
-			this.opposingGoal = opposingGoal;
 
+			this.opposingGoal = opposingGoal;
 			this.opposingTeam = null;
 
 			this.receivingPlayer = null;
@@ -57234,6 +57330,12 @@
 			this.supportingPlayer = null;
 
 			this.stateMachine = new StateMachine( this );
+
+			this.stateMachine.add( TEAM_STATES.ATTACKING, new AttackingState() );
+			this.stateMachine.add( TEAM_STATES.DEFENDING, new DefendingState() );
+			this.stateMachine.add( TEAM_STATES.PREPARE_FOR_KICKOFF, new PrepareForKickOffState() );
+
+			this.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 			this._supportSpotCalculator = new SupportSpotCalculator( this );
 
@@ -57472,11 +57574,27 @@
 
 			if ( this.color === TEAM.RED ) {
 
-				regions = redDefendingRegions;
+				if ( this.stateMachine.in( TEAM_STATES.DEFENDING ) ) {
+
+					regions = redDefendingRegions;
+
+				} else {
+
+					regions = redAttackingRegions;
+
+				}
 
 			} else {
 
-				regions = blueDefendingRegions;
+				if ( this.stateMachine.in( TEAM_STATES.DEFENDING ) ) {
+
+					regions = blueDefendingRegions;
+
+				} else {
+
+					regions = blueAttackingRegions;
+
+				}
 
 			}
 
@@ -57486,9 +57604,6 @@
 				const regionId = regions[ i ];
 
 				player.homeRegionId = regionId;
-
-				const region = this.pitch.getRegionById( regionId );
-				player.position.copy( region.center );
 
 			}
 
@@ -57500,7 +57615,7 @@
 
 			for ( let i = 0, l = players.length; i < l; i ++ ) {
 
-				const player = this.players[ i ];
+				const player = players[ i ];
 
 				if ( player.role !== ROLE.GOALKEEPER ) {
 
@@ -57705,8 +57820,8 @@
 	}
 
 	// these define the home regions for this state of each of the players
-	// const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
-	// const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
+	const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
+	const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
 
 	const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
 	const redDefendingRegions = [ 16, 9, 11, 12, 14 ];

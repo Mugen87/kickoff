@@ -92,7 +92,13 @@ class SupportSpotCalculator {
 
 		}
 
-		return this._bestSupportSpot.position;
+		if ( this._bestSupportSpot !== null ) {
+
+			return this._bestSupportSpot.position;
+
+		}
+
+		return null;
 
 	}
 

@@ -24,6 +24,8 @@ class Player extends Vehicle {
 		this.homeRegionId = homeRegionId;
 		this.defaultRegionId = homeRegionId;
 
+		this.position.copy( pitch.getRegionById( homeRegionId ).center );
+
 		// Must be in the range [0,1]. Adjusts the amount of noise added to a kick.
 		// The lower the value the worse the player gets.
 
@@ -32,8 +34,6 @@ class Player extends Vehicle {
 		this.stateMachine = new StateMachine( this );
 
 		this.steeringTarget = new Vector3();
-
-		this.manager = team.manager;
 
 	}
 

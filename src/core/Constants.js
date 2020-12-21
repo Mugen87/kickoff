@@ -19,6 +19,11 @@ export const FIELDPLAYER_STATES = {
 	SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
 	WAIT: 'WAIT'
 };
+export const TEAM_STATES = {
+	ATTACKING: 'ATTACKING',
+	DEFENDING: 'DEFENDING',
+	PREPARE_FOR_KICKOFF: 'PREPARE_FOR_KICKOFF'
+};
 export const CONFIG = {
 	GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 	GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball

@@ -3,8 +3,9 @@
  */
 
 import { GameEntity, MathUtils, Matrix4, Quaternion, StateMachine, Vector3 } from 'yuka';
-import { MESSAGE, TEAM, ROLE, CONFIG, FIELDPLAYER_STATES } from '../core/Constants.js';
+import { MESSAGE, TEAM, ROLE, CONFIG, FIELDPLAYER_STATES, TEAM_STATES } from '../core/Constants.js';
 import SupportSpotCalculator from '../etc/SupportSpotCalculator.js';
+import { AttackingState, DefendingState, PrepareForKickOffState } from '../states/TeamStates.js';
 import FieldPlayer from './FieldPlayer.js';
 import Goalkeeper from './Goalkeeper.js';
 
@@ -37,8 +38,8 @@ class Team extends GameEntity {
 		this.ball = ball;
 		this.pitch = pitch;
 		this.homeGoal = homeGoal;
-		this.opposingGoal = opposingGoal;
 
+		this.opposingGoal = opposingGoal;
 		this.opposingTeam = null;
 
 		this.receivingPlayer = null;
@@ -47,6 +48,12 @@ class Team extends GameEntity {
 		this.supportingPlayer = null;
 
 		this.stateMachine = new StateMachine( this );
+
+		this.stateMachine.add( TEAM_STATES.ATTACKING, new AttackingState() );
+		this.stateMachine.add( TEAM_STATES.DEFENDING, new DefendingState() );
+		this.stateMachine.add( TEAM_STATES.PREPARE_FOR_KICKOFF, new PrepareForKickOffState() );
+
+		this.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 		this._supportSpotCalculator = new SupportSpotCalculator( this );
 
@@ -285,11 +292,27 @@ class Team extends GameEntity {
 
 		if ( this.color === TEAM.RED ) {
 
-			regions = redDefendingRegions;
+			if ( this.stateMachine.in( TEAM_STATES.DEFENDING ) ) {
+
+				regions = redDefendingRegions;
+
+			} else {
+
+				regions = redAttackingRegions;
+
+			}
 
 		} else {
 
-			regions = blueDefendingRegions;
+			if ( this.stateMachine.in( TEAM_STATES.DEFENDING ) ) {
+
+				regions = blueDefendingRegions;
+
+			} else {
+
+				regions = blueAttackingRegions;
+
+			}
 
 		}
 
@@ -299,9 +322,6 @@ class Team extends GameEntity {
 			const regionId = regions[ i ];
 
 			player.homeRegionId = regionId;
-
-			const region = this.pitch.getRegionById( regionId );
-			player.position.copy( region.center );
 
 		}
 
@@ -313,7 +333,7 @@ class Team extends GameEntity {
 
 		for ( let i = 0, l = players.length; i < l; i ++ ) {
 
-			const player = this.players[ i ];
+			const player = players[ i ];
 
 			if ( player.role !== ROLE.GOALKEEPER ) {
 
@@ -518,8 +538,8 @@ class Team extends GameEntity {
 }
 
 // these define the home regions for this state of each of the players
-// const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
-// const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
+const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
+const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
 
 const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
 const redDefendingRegions = [ 16, 9, 11, 12, 14 ];
