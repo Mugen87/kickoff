@@ -28725,84 +28725,6 @@
 
 	} );
 
-	class CircleBufferGeometry extends BufferGeometry {
-
-		constructor( radius = 1, segments = 8, thetaStart = 0, thetaLength = Math.PI * 2 ) {
-
-			super();
-
-			this.type = 'CircleBufferGeometry';
-
-			this.parameters = {
-				radius: radius,
-				segments: segments,
-				thetaStart: thetaStart,
-				thetaLength: thetaLength
-			};
-
-			segments = Math.max( 3, segments );
-
-			// buffers
-
-			const indices = [];
-			const vertices = [];
-			const normals = [];
-			const uvs = [];
-
-			// helper variables
-
-			const vertex = new Vector3();
-			const uv = new Vector2();
-
-			// center point
-
-			vertices.push( 0, 0, 0 );
-			normals.push( 0, 0, 1 );
-			uvs.push( 0.5, 0.5 );
-
-			for ( let s = 0, i = 3; s <= segments; s ++, i += 3 ) {
-
-				const segment = thetaStart + s / segments * thetaLength;
-
-				// vertex
-
-				vertex.x = radius * Math.cos( segment );
-				vertex.y = radius * Math.sin( segment );
-
-				vertices.push( vertex.x, vertex.y, vertex.z );
-
-				// normal
-
-				normals.push( 0, 0, 1 );
-
-				// uvs
-
-				uv.x = ( vertices[ i ] / radius + 1 ) / 2;
-				uv.y = ( vertices[ i + 1 ] / radius + 1 ) / 2;
-
-				uvs.push( uv.x, uv.y );
-
-			}
-
-			// indices
-
-			for ( let i = 1; i <= segments; i ++ ) {
-
-				indices.push( i, i + 1, 0 );
-
-			}
-
-			// build geometry
-
-			this.setIndex( indices );
-			this.setAttribute( 'position', new Float32BufferAttribute( vertices, 3 ) );
-			this.setAttribute( 'normal', new Float32BufferAttribute( normals, 3 ) );
-			this.setAttribute( 'uv', new Float32BufferAttribute( uvs, 2 ) );
-
-		}
-
-	}
-
 	class CylinderBufferGeometry extends BufferGeometry {
 
 		constructor( radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 8, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2 ) {
@@ -56404,18 +56326,18 @@
 
 			this.id = id;
 
-			this._left = center.x - ( width / 2 );
-			this._right = center.x + ( width / 2 );
-			this._top = center.z + ( height / 2 );
-			this._bottom = center.z - ( height / 2 );
+			this.left = center.x - ( width / 2 );
+			this.right = center.x + ( width / 2 );
+			this.top = center.z + ( height / 2 );
+			this.bottom = center.z - ( height / 2 );
 
 		}
 
 		getRandomPosition( position ) {
 
-			position.x = MathUtils$1.randFloat( this._left, this._right );
+			position.x = MathUtils$1.randFloat( this.left, this.right );
 			position.y = 0;
-			position.z = MathUtils$1.randFloat( this._bottom, this._top );
+			position.z = MathUtils$1.randFloat( this.bottom, this.top );
 
 			return position;
 
@@ -56430,17 +56352,17 @@
 				marginX = this.width * 0.25;
 				marginY = this.height * 0.25;
 
-				return ( ( position.x > ( this._left + marginX ) ) &&
-					 ( position.x < ( this._right - marginX ) ) &&
-					 ( position.z > ( this._bottom + marginY ) ) &&
-					 ( position.z < ( this._top - marginY ) ) );
+				return ( ( position.x > ( this.left + marginX ) ) &&
+					 ( position.x < ( this.right - marginX ) ) &&
+					 ( position.z > ( this.bottom + marginY ) ) &&
+					 ( position.z < ( this.top - marginY ) ) );
 
 			} else {
 
-				return ( ( position.x > this._left ) &&
-					 ( position.x < this._right ) &&
-					 ( position.z > this._bottom ) &&
-					 ( position.z < this._top ) );
+				return ( ( position.x > this.left ) &&
+					 ( position.x < this.right ) &&
+					 ( position.z > this.bottom ) &&
+					 ( position.z < this.top ) );
 
 			}
 
@@ -56527,6 +56449,15 @@
 		PUT_BALL_BACK_IN_PLAY: 'PUT_BALL_BACK_IN_PLAY',
 		INTERCEPT_BALL: 'INTERCEPT_BALL'
 	};
+	const FIELDPLAYER_STATES = {
+		CHASE_BALL: 'CHASE_BALL',
+		DRIBBLE: 'DRIBBLE',
+		KICK_BALL: 'KICK_BALL',
+		RECEIVE_BALL: 'RECEIVE_BALL',
+		RETURN_HOME: 'RETURN_HOME',
+		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
+		WAIT: 'WAIT'
+	};
 	const CONFIG = {
 		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
 		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
@@ -56536,12 +56467,19 @@
 		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
 		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
 		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
-		PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
+		PLAYER_MAX_PASSING_FORCE: 2.5, // the force used for passing
+		PLAYER_MAX_SHOOTING_FORCE: 4, // the force used for shooting at the goal
 		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
 		PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
 		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
-		PLAYER_PASS_REQUEST_FAILURE: 0.1 // the likelihood that a pass request won't be noticed
-
+		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
+		SUPPORT_SPOT_CALCULATOR_SLICE_X: 12, // x dimension of spot
+		SUPPORT_SPOT_CALCULATOR_SLICE_Y: 5, // y dimension of spot
+		SUPPORT_SPOT_CALCULATOR_SCORE_CAN_PASS: 2, // score when pass is possible
+		SUPPORT_SPOT_CALCULATOR_SCORE_CAN_SCORE: 1, // score when a goal is possible
+		SUPPORT_SPOT_CALCULATOR_SCORE_DISTANCE: 2, // score for pass distance
+		SUPPORT_SPOT_CALCULATOR_OPT_DISTANCE: 5, // optimal distance for a pass
+		SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY: 1 // updates per second
 	};
 
 	const TEAM = {
@@ -56561,6 +56499,156 @@
 	CONFIG.PLAYER_IN_TARGET_RANGE_SQ = CONFIG.PLAYER_IN_TARGET_RANGE * CONFIG.PLAYER_IN_TARGET_RANGE;
 	CONFIG.PLAYER_KICKING_DISTANCE_SQ = CONFIG.PLAYER_KICKING_DISTANCE * CONFIG.PLAYER_KICKING_DISTANCE;
 	CONFIG.PLAYER_RECEIVING_RANGE_SQ = CONFIG.PLAYER_RECEIVING_RANGE * CONFIG.PLAYER_RECEIVING_RANGE;
+
+	/**
+	 * @author Mugen87 / https://github.com/Mugen87
+	 */
+
+	const _target$1 = new Vector3$1();
+
+	class SupportSpotCalculator {
+
+		constructor( team ) {
+
+			this.team = team;
+
+			this._bestSupportSpot = null;
+			this._regulator = new Regulator( CONFIG.SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY );
+			this._spots = [];
+
+			this._computeSupportingSpots();
+
+		}
+
+		computeBestSupportingPosition() {
+
+			let bestScore = 0;
+
+			if ( this._regulator.ready() === false && this._bestSupportSpot !== null ) {
+
+				return this._bestSupportSpot.position;
+
+			}
+
+			this._bestSupportSpot = null;
+
+			const spots = this._spots;
+			const team = this.team;
+
+			for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+				const spot = spots[ i ];
+				spot.score = 0;
+
+				// 1.Test: Is it possible to make a safe pass from the ball's position to this position?
+
+				if ( team.inControl() && team.isPassSafeFromAllOpponents( this.team.controllingPlayer.position, spot.position, null, CONFIG.PLAYER_MAX_PASSING_FORCE ) ) {
+
+					spot.score += CONFIG.SUPPORT_SPOT_CALCULATOR_SCORE_CAN_PASS;
+
+				}
+
+				// 2.Test: Determine if a goal can be scored from this position.
+
+				if ( team.canShoot( spot.position, CONFIG.PLAYER_MAX_SHOOTING_FORCE, _target$1 ) ) {
+
+					spot.score += CONFIG.SUPPORT_SPOT_CALCULATOR_SCORE_CAN_SCORE;
+
+				}
+
+				// 3. Test: Calculate how far this spot is away from the controlling player.
+				// The further away, the higher the score. The constant "OPT_DISTANCE" describes the optimal distance for this score.
+
+				if ( team.supportingPlayer !== null ) {
+
+					const distance = team.controllingPlayer.position.distanceTo( spot.position );
+
+					if ( distance < CONFIG.SUPPORT_SPOT_CALCULATOR_OPT_DISTANCE ) {
+
+						// add the score proportionally to the distance
+
+						const f = ( CONFIG.SUPPORT_SPOT_CALCULATOR_OPT_DISTANCE - distance ) / CONFIG.SUPPORT_SPOT_CALCULATOR_OPT_DISTANCE;
+						spot.score += CONFIG.SUPPORT_SPOT_CALCULATOR_SCORE_DISTANCE * f;
+
+					} else {
+
+						// distances greater than "OPT_DISTANCE" get full score
+
+						spot.score += CONFIG.SUPPORT_SPOT_CALCULATOR_SCORE_DISTANCE;
+
+					}
+
+				}
+
+				if ( spot.score > bestScore ) {
+
+					bestScore = spot.score;
+
+					this._bestSupportSpot = spot;
+
+				}
+
+			}
+
+			return this._bestSupportSpot.position;
+
+		}
+
+		getBestSupportingPosition() {
+
+			if ( this._bestSupportSpot === null ) {
+
+				return this.calculateBestSupportingPosition();
+
+			} else {
+
+				return this._bestSupportSpot.position;
+
+			}
+
+		}
+
+		_computeSupportingSpots() {
+
+			const playingField = this.team.pitch.playingArea;
+
+			const widthOfSpotRegion = playingField.width * 0.8;
+			const heightOfSpotRegion = playingField.height * 0.8;
+
+			const sliceX = widthOfSpotRegion / CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_X;
+			const sliceY = heightOfSpotRegion / CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_Y;
+
+			const top = playingField.top - ( ( playingField.height - heightOfSpotRegion ) * 0.5 ) - ( sliceY * 0.5 );
+			const right = playingField.right - ( ( playingField.width - widthOfSpotRegion ) * 0.5 ) - ( sliceX * 0.5 );
+			const left = playingField.left + ( ( playingField.width - widthOfSpotRegion ) * 0.5 ) + ( sliceX * 0.5 );
+
+			for ( let x = 0; x < ( CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_X * 0.5 ) - 1; x ++ ) {
+
+				for ( let y = 0; y < CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_Y; y ++ ) {
+
+					if ( this.team.color === TEAM.RED ) {
+
+						this._spots.push( {
+							position: new Vector3$1( left + ( x * sliceX ), 0, top - ( y * sliceY ) ),
+							score: 0
+						} );
+
+					} else {
+
+						this._spots.push( {
+							position: new Vector3$1( right - ( x * sliceX ), 0, top - ( y * sliceY ) ),
+							score: 0
+						} );
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
@@ -56725,7 +56813,7 @@
 
 		}
 
-		isInHomeRegion() {
+		inHomeRegion() {
 
 			const homeRegion = this.getHomeRegion();
 
@@ -56801,7 +56889,7 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
-	const _target$1 = new Vector3$1();
+	const _target$2 = new Vector3$1();
 	const _displacement$1 = new Vector3$1();
 
 	class GlobalState extends State {
@@ -56849,7 +56937,7 @@
 
 		execute( goalkeeper ) {
 
-			if ( goalkeeper.isInHomeRegion() || goalkeeper.team.inControl() === false ) {
+			if ( goalkeeper.inHomeRegion() || goalkeeper.team.inControl() === false ) {
 
 				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
 
@@ -56881,11 +56969,11 @@
 
 			const ball = goalkeeper.team.ball;
 
-			goalkeeper.getRearInterposeTarget( _target$1 );
+			goalkeeper.getRearInterposeTarget( _target$2 );
 
-			_displacement$1.subVectors( ball.position, _target$1 ).normalize().multiplyScalar( CONFIG.GOALKEEPER_TENDING_DISTANCE );
+			_displacement$1.subVectors( ball.position, _target$2 ).normalize().multiplyScalar( CONFIG.GOALKEEPER_TENDING_DISTANCE );
 
-			goalkeeper.steeringTarget.copy( _target$1 ).add( _displacement$1 );
+			goalkeeper.steeringTarget.copy( _target$2 ).add( _displacement$1 );
 
 			//
 
@@ -56909,7 +56997,7 @@
 
 			}
 
-			if ( goalkeeper.isBallWithinRangeForIntercept() && goalkeeper.team.isInControl() === false ) {
+			if ( goalkeeper.isBallWithinRangeForIntercept() && goalkeeper.team.inControl() === false ) {
 
 				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.INTERCEPT_BALL );
 
@@ -57023,7 +57111,7 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
-	const _target$2 = new Vector3$1();
+	const _target$3 = new Vector3$1();
 
 	class Goalkeeper extends Player {
 
@@ -57071,9 +57159,9 @@
 
 		isTooFarFromGoalMouth() {
 
-			this.getRearInterposeTarget( _target$2 );
+			this.getRearInterposeTarget( _target$3 );
 
-			return this.position.squaredDistanceTo( _target$2 ) > CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ;
+			return this.position.squaredDistanceTo( _target$3 ) > CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ;
 
 		}
 
@@ -57111,14 +57199,14 @@
 	const _startPosition = new Vector3$1();
 	const _endPosition = new Vector3$1();
 	const _toPoint = new Vector3$1();
-	const _target$3 = new Vector3$1();
+	const _target$4 = new Vector3$1();
 	const _passes = [];
 	const _tangent1 = new Vector3$1();
 	const _tangent2 = new Vector3$1();
 
 	const _rotation = new Quaternion$1();
 	const _direction$2 = new Vector3$1();
-	const _scale$1 = new Vector3$1();
+	const _scale$1 = new Vector3$1( 1, 1, 1 );
 
 	const _matrix$1 = new Matrix4$1();
 	const _inverseMatrix$3 = new Matrix4$1();
@@ -57147,6 +57235,8 @@
 
 			this.stateMachine = new StateMachine( this );
 
+			this._supportSpotCalculator = new SupportSpotCalculator( this );
+
 			this._createPlayers();
 
 		}
@@ -57165,7 +57255,7 @@
 
 				const player = this.children[ i ];
 
-				if ( player.isInHomeRegion() === false ) {
+				if ( player.inHomeRegion() === false ) {
 
 					return false;
 
@@ -57177,21 +57267,20 @@
 
 		}
 
-		canShoot( kickingPower, shootTarget ) {
+		canShoot( ballPosition, kickingPower, shootTarget ) {
 
 			const halfWidth = this.opposingGoal.width / 2;
 
 			for ( let i = 0; i < CONFIG.PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE; i ++ ) {
 
 				const ball = this.ball;
-				const ballPosition = ball.position;
 
 				shootTarget.copy( this.opposingGoal.position );
 
 				const minZ = this.opposingGoal.position.z - halfWidth + ball.boundingRadius;
 				const maxZ = this.opposingGoal.position.z + halfWidth - ball.boundingRadius;
 
-				shootTarget.z = MathUtils$1.randInt( minZ, maxZ );
+				shootTarget.z = MathUtils$1.randInt( minZ, maxZ ); // random
 
 				const time = ball.timeToCoverDistance( ballPosition, shootTarget, kickingPower );
 
@@ -57208,6 +57297,12 @@
 			}
 
 			return false;
+
+		}
+
+		computeBestSupportingPosition() {
+
+			this._supportSpotCalculator.computeBestSupportingPosition();
 
 		}
 
@@ -57228,16 +57323,16 @@
 
 				if ( player !== passer && squaredDistanceToReceiver >= minPassingSquaredDistance ) {
 
-					if ( this._getBestPassToReceiver( passer, player, passPower, _target$3 ) ) {
+					if ( this._getBestPassToReceiver( passer, player, passPower, _target$4 ) ) {
 
-						const distanceToGoal = _target$3.squaredDistanceTo( this.opposingGoal.position );
+						const distanceToGoal = _target$4.squaredDistanceTo( this.opposingGoal.position );
 
 						if ( distanceToGoal < minDistance ) {
 
 							minDistance = distanceToGoal;
 
 							pass.receiver = player;
-							pass.target.copy( _target$3 );
+							pass.target.copy( _target$4 );
 
 						}
 
@@ -57256,6 +57351,12 @@
 				return null;
 
 			}
+
+		}
+
+		getSupportPosition() {
+
+			return this._supportSpotCalculator.getBestSupportingPosition();
 
 		}
 
@@ -57388,6 +57489,28 @@
 
 				const region = this.pitch.getRegionById( regionId );
 				player.position.copy( region.center );
+
+			}
+
+		}
+
+		updateSteeringTargetOfPlayers() {
+
+			const players = this.children;
+
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+				const player = this.players[ i ];
+
+				if ( player.role !== ROLE.GOALKEEPER ) {
+
+					if ( player.stateMachine.in( FIELDPLAYER_STATES.WAIT ) || player.stateMachine.in( FIELDPLAYER_STATES.RETURN_HOME ) ) {
+
+						player.steeringTarget.copy( player.getHomeRegion().center );
+
+					}
+
+				}
 
 			}
 
@@ -57803,11 +57926,13 @@
 			teamRed.setupTeamPositions();
 			teamBlue.setupTeamPositions();
 
+			teamRed.computeBestSupportingPosition();
+
 			teamRed.children[ 0 ].position.set( 5, 0, 0 );
 			teamRed.returnAllFieldPlayersToHome( true );
 
 			this._debugPitch( pitch );
-			//this._debugTeam( teamRed );
+			this._debugTeam( teamRed );
 
 			setTimeout( () => {
 
@@ -57926,38 +58051,57 @@
 
 		_debugTeam( team ) {
 
-			const C = new Vector3$1();
-			const R = 4;
-			const P = new Vector3$1( - 8, 0, 0 );
-			const T1 = new Vector3$1();
-			const T2 = new Vector3$1();
+			// const C = new Vector3();
+			// const R = 4;
+			// const P = new Vector3( - 8, 0, 0 );
+			// const T1 = new Vector3();
+			// const T2 = new Vector3();
 
-			team._computeTangentPoints( C, R, P, T1, T2 );
+			// team._computeTangentPoints( C, R, P, T1, T2 );
 
-			const circleGeometry = new CircleBufferGeometry( R, 32 );
-			circleGeometry.rotateX( Math.PI * - 0.5 );
-			const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
-			const circle = new Mesh( circleGeometry, circleMaterial );
-			circle.position.copy( C );
-			circle.position.y = 0.01;
-			this.scene.add( circle );
+			// const circleGeometry = new CircleBufferGeometry( R, 32 );
+			// circleGeometry.rotateX( Math.PI * - 0.5 );
+			// const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
+			// const circle = new Mesh( circleGeometry, circleMaterial );
+			// circle.position.copy( C );
+			// circle.position.y = 0.01;
+			// this.scene.add( circle );
 
-			const pointGeometry = new SphereBufferGeometry( 0.1 );
-			pointGeometry.translate( 0, 0.05, 0 );
-			const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
+			// const pointGeometry = new SphereBufferGeometry( 0.1 );
+			// pointGeometry.translate( 0, 0.05, 0 );
+			// const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
 
-			const point1 = new Mesh( pointGeometry, pointMaterial );
-			point1.position.copy( T1 );
-			this.scene.add( point1 );
+			// const point1 = new Mesh( pointGeometry, pointMaterial );
+			// point1.position.copy( T1 );
+			// this.scene.add( point1 );
 
-			const point2 = new Mesh( pointGeometry, pointMaterial );
-			point2.position.copy( T2 );
-			this.scene.add( point2 );
+			// const point2 = new Mesh( pointGeometry, pointMaterial );
+			// point2.position.copy( T2 );
+			// this.scene.add( point2 );
 
-			const point3 = new Mesh( pointGeometry, pointMaterial );
-			point3.position.copy( P );
-			this.scene.add( point3 );
+			// const point3 = new Mesh( pointGeometry, pointMaterial );
+			// point3.position.copy( P );
+			// this.scene.add( point3 );
 
+			const supportSpotCalculator = team._supportSpotCalculator;
+			const spots = supportSpotCalculator._spots;
+
+			const spotGeometry = new SphereBufferGeometry( 0.1 );
+			const spotMaterial = new MeshBasicMaterial( { color: 0x00ff00 } );
+
+			for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+				const spot = spots[ i ];
+
+				const spotMesh = new Mesh( spotGeometry, spotMaterial );
+				spotMesh.position.copy( spot.position );
+				spotMesh.position.y += 0.1;
+
+				spotMesh.scale.setScalar( spot.score || 0.5 );
+
+				this.scene.add( spotMesh );
+
+			}
 
 		}
 

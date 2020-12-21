@@ -223,11 +223,13 @@ class World {
 		teamRed.setupTeamPositions();
 		teamBlue.setupTeamPositions();
 
+		teamRed.computeBestSupportingPosition();
+
 		teamRed.children[ 0 ].position.set( 5, 0, 0 );
 		teamRed.returnAllFieldPlayersToHome( true );
 
 		this._debugPitch( pitch );
-		//this._debugTeam( teamRed );
+		this._debugTeam( teamRed );
 
 		setTimeout( () => {
 
@@ -346,38 +348,57 @@ class World {
 
 	_debugTeam( team ) {
 
-		const C = new Vector3();
-		const R = 4;
-		const P = new Vector3( - 8, 0, 0 );
-		const T1 = new Vector3();
-		const T2 = new Vector3();
+		// const C = new Vector3();
+		// const R = 4;
+		// const P = new Vector3( - 8, 0, 0 );
+		// const T1 = new Vector3();
+		// const T2 = new Vector3();
 
-		team._computeTangentPoints( C, R, P, T1, T2 );
+		// team._computeTangentPoints( C, R, P, T1, T2 );
 
-		const circleGeometry = new CircleBufferGeometry( R, 32 );
-		circleGeometry.rotateX( Math.PI * - 0.5 );
-		const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
-		const circle = new Mesh( circleGeometry, circleMaterial );
-		circle.position.copy( C );
-		circle.position.y = 0.01;
-		this.scene.add( circle );
+		// const circleGeometry = new CircleBufferGeometry( R, 32 );
+		// circleGeometry.rotateX( Math.PI * - 0.5 );
+		// const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
+		// const circle = new Mesh( circleGeometry, circleMaterial );
+		// circle.position.copy( C );
+		// circle.position.y = 0.01;
+		// this.scene.add( circle );
 
-		const pointGeometry = new SphereBufferGeometry( 0.1 );
-		pointGeometry.translate( 0, 0.05, 0 );
-		const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
+		// const pointGeometry = new SphereBufferGeometry( 0.1 );
+		// pointGeometry.translate( 0, 0.05, 0 );
+		// const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
 
-		const point1 = new Mesh( pointGeometry, pointMaterial );
-		point1.position.copy( T1 );
-		this.scene.add( point1 );
+		// const point1 = new Mesh( pointGeometry, pointMaterial );
+		// point1.position.copy( T1 );
+		// this.scene.add( point1 );
 
-		const point2 = new Mesh( pointGeometry, pointMaterial );
-		point2.position.copy( T2 );
-		this.scene.add( point2 );
+		// const point2 = new Mesh( pointGeometry, pointMaterial );
+		// point2.position.copy( T2 );
+		// this.scene.add( point2 );
 
-		const point3 = new Mesh( pointGeometry, pointMaterial );
-		point3.position.copy( P );
-		this.scene.add( point3 );
+		// const point3 = new Mesh( pointGeometry, pointMaterial );
+		// point3.position.copy( P );
+		// this.scene.add( point3 );
 
+		const supportSpotCalculator = team._supportSpotCalculator;
+		const spots = supportSpotCalculator._spots;
+
+		const spotGeometry = new SphereBufferGeometry( 0.1 );
+		const spotMaterial = new MeshBasicMaterial( { color: 0x00ff00 } );
+
+		for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+			const spot = spots[ i ];
+
+			const spotMesh = new Mesh( spotGeometry, spotMaterial );
+			spotMesh.position.copy( spot.position );
+			spotMesh.position.y += 0.1;
+
+			spotMesh.scale.setScalar( spot.score || 0.5 );
+
+			this.scene.add( spotMesh );
+
+		}
 
 	}
 

@@ -53,7 +53,7 @@ class ReturnHomeState extends State {
 
 	execute( goalkeeper ) {
 
-		if ( goalkeeper.isInHomeRegion() || goalkeeper.team.inControl() === false ) {
+		if ( goalkeeper.inHomeRegion() || goalkeeper.team.inControl() === false ) {
 
 			goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
 
@@ -113,7 +113,7 @@ class TendGoalState extends State {
 
 		}
 
-		if ( goalkeeper.isBallWithinRangeForIntercept() && goalkeeper.team.isInControl() === false ) {
+		if ( goalkeeper.isBallWithinRangeForIntercept() && goalkeeper.team.inControl() === false ) {
 
 			goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.INTERCEPT_BALL );
 

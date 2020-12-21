@@ -164,7 +164,7 @@ class Player extends Vehicle {
 
 	}
 
-	isInHomeRegion() {
+	inHomeRegion() {
 
 		const homeRegion = this.getHomeRegion();
 

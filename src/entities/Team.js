@@ -3,7 +3,8 @@
  */
 
 import { GameEntity, MathUtils, Matrix4, Quaternion, StateMachine, Vector3 } from 'yuka';
-import { MESSAGE, TEAM, ROLE, CONFIG } from '../core/Constants.js';
+import { MESSAGE, TEAM, ROLE, CONFIG, FIELDPLAYER_STATES } from '../core/Constants.js';
+import SupportSpotCalculator from '../etc/SupportSpotCalculator.js';
 import FieldPlayer from './FieldPlayer.js';
 import Goalkeeper from './Goalkeeper.js';
 
@@ -18,7 +19,7 @@ const _tangent2 = new Vector3();
 
 const _rotation = new Quaternion();
 const _direction = new Vector3();
-const _scale = new Vector3();
+const _scale = new Vector3( 1, 1, 1 );
 
 const _matrix = new Matrix4();
 const _inverseMatrix = new Matrix4();
@@ -47,6 +48,8 @@ class Team extends GameEntity {
 
 		this.stateMachine = new StateMachine( this );
 
+		this._supportSpotCalculator = new SupportSpotCalculator( this );
+
 		this._createPlayers();
 
 	}
@@ -65,7 +68,7 @@ class Team extends GameEntity {
 
 			const player = this.children[ i ];
 
-			if ( player.isInHomeRegion() === false ) {
+			if ( player.inHomeRegion() === false ) {
 
 				return false;
 
@@ -77,21 +80,20 @@ class Team extends GameEntity {
 
 	}
 
-	canShoot( kickingPower, shootTarget ) {
+	canShoot( ballPosition, kickingPower, shootTarget ) {
 
 		const halfWidth = this.opposingGoal.width / 2;
 
 		for ( let i = 0; i < CONFIG.PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE; i ++ ) {
 
 			const ball = this.ball;
-			const ballPosition = ball.position;
 
 			shootTarget.copy( this.opposingGoal.position );
 
 			const minZ = this.opposingGoal.position.z - halfWidth + ball.boundingRadius;
 			const maxZ = this.opposingGoal.position.z + halfWidth - ball.boundingRadius;
 
-			shootTarget.z = MathUtils.randInt( minZ, maxZ );
+			shootTarget.z = MathUtils.randInt( minZ, maxZ ); // random
 
 			const time = ball.timeToCoverDistance( ballPosition, shootTarget, kickingPower );
 
@@ -108,6 +110,12 @@ class Team extends GameEntity {
 		}
 
 		return false;
+
+	}
+
+	computeBestSupportingPosition() {
+
+		this._supportSpotCalculator.computeBestSupportingPosition();
 
 	}
 
@@ -156,6 +164,12 @@ class Team extends GameEntity {
 			return null;
 
 		}
+
+	}
+
+	getSupportPosition() {
+
+		return this._supportSpotCalculator.getBestSupportingPosition();
 
 	}
 
@@ -288,6 +302,28 @@ class Team extends GameEntity {
 
 			const region = this.pitch.getRegionById( regionId );
 			player.position.copy( region.center );
+
+		}
+
+	}
+
+	updateSteeringTargetOfPlayers() {
+
+		const players = this.children;
+
+		for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+			const player = this.players[ i ];
+
+			if ( player.role !== ROLE.GOALKEEPER ) {
+
+				if ( player.stateMachine.in( FIELDPLAYER_STATES.WAIT ) || player.stateMachine.in( FIELDPLAYER_STATES.RETURN_HOME ) ) {
+
+					player.steeringTarget.copy( player.getHomeRegion().center );
+
+				}
+
+			}
 
 		}
 

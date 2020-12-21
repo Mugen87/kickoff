@@ -15,18 +15,18 @@ class Region {
 
 		this.id = id;
 
-		this._left = center.x - ( width / 2 );
-		this._right = center.x + ( width / 2 );
-		this._top = center.z + ( height / 2 );
-		this._bottom = center.z - ( height / 2 );
+		this.left = center.x - ( width / 2 );
+		this.right = center.x + ( width / 2 );
+		this.top = center.z + ( height / 2 );
+		this.bottom = center.z - ( height / 2 );
 
 	}
 
 	getRandomPosition( position ) {
 
-		position.x = MathUtils.randFloat( this._left, this._right );
+		position.x = MathUtils.randFloat( this.left, this.right );
 		position.y = 0;
-		position.z = MathUtils.randFloat( this._bottom, this._top );
+		position.z = MathUtils.randFloat( this.bottom, this.top );
 
 		return position;
 
@@ -41,17 +41,17 @@ class Region {
 			marginX = this.width * 0.25;
 			marginY = this.height * 0.25;
 
-			return ( ( position.x > ( this._left + marginX ) ) &&
-				 ( position.x < ( this._right - marginX ) ) &&
-				 ( position.z > ( this._bottom + marginY ) ) &&
-				 ( position.z < ( this._top - marginY ) ) );
+			return ( ( position.x > ( this.left + marginX ) ) &&
+				 ( position.x < ( this.right - marginX ) ) &&
+				 ( position.z > ( this.bottom + marginY ) ) &&
+				 ( position.z < ( this.top - marginY ) ) );
 
 		} else {
 
-			return ( ( position.x > this._left ) &&
-				 ( position.x < this._right ) &&
-				 ( position.z > this._bottom ) &&
-				 ( position.z < this._top ) );
+			return ( ( position.x > this.left ) &&
+				 ( position.x < this.right ) &&
+				 ( position.z > this.bottom ) &&
+				 ( position.z < this.top ) );
 
 		}
 
