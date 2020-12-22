@@ -56,10 +56,18 @@ class World {
 		};
 
 		this.debugParameter = {
-			'showWalls': false
+			'showAxes': false,
+			'showWalls': false,
+			'showRegions': false,
+			'showSupportSpotsRed': false,
+			'showSupportSpotsBlue': false
 		};
 
+		this._axesHelper = null;
+		this._regionHelpers = [];
 		this._wallHelpers = [];
+		this._supportingSpotsRedHelpers = [];
+		this._supportingSpotsBlueHelpers = [];
 
 		//
 
@@ -167,7 +175,16 @@ class World {
 
 	}
 
-	_debugPitch( pitch ) {
+	_debugPitch() {
+
+		const pitch = this.pitch;
+
+		const helper = new AxesHelper( 10 );
+		helper.visible = false;
+		helper.position.y = 0.01;
+		this.scene.add( helper );
+
+		this._axesHelper = helper;
 
 		// regions
 
@@ -193,13 +210,15 @@ class World {
 			context.fillText( `ID: ${i}`, canvas.width / 2, canvas.height / 2 );
 
 			const geometry = new PlaneBufferGeometry( region.width, region.height );
-			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
-			const mesh = new Mesh( geometry, material );
+			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 1 } );
 
-			mesh.position.copy( region.center );
-			mesh.rotation.x = Math.PI * - 0.5;
+			const helper = new Mesh( geometry, material );
+			helper.visible = false;
+			helper.position.copy( region.center );
+			helper.rotation.x = Math.PI * - 0.5;
+			this.scene.add( helper );
 
-			this.scene.add( mesh );
+			this._regionHelpers.push( helper );
 
 		}
 
@@ -222,57 +241,51 @@ class World {
 
 	}
 
-	_debugTeam( team ) {
+	_debugTeams() {
 
-		// const C = new Vector3();
-		// const R = 4;
-		// const P = new Vector3( - 8, 0, 0 );
-		// const T1 = new Vector3();
-		// const T2 = new Vector3();
+		// red
 
-		// team._computeTangentPoints( C, R, P, T1, T2 );
+		const redTeam = this.pitch.teamRed;
 
-		// const circleGeometry = new CircleBufferGeometry( R, 32 );
-		// circleGeometry.rotateX( Math.PI * - 0.5 );
-		// const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
-		// const circle = new Mesh( circleGeometry, circleMaterial );
-		// circle.position.copy( C );
-		// circle.position.y = 0.01;
-		// this.scene.add( circle );
-
-		// const pointGeometry = new SphereBufferGeometry( 0.1 );
-		// pointGeometry.translate( 0, 0.05, 0 );
-		// const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
-
-		// const point1 = new Mesh( pointGeometry, pointMaterial );
-		// point1.position.copy( T1 );
-		// this.scene.add( point1 );
-
-		// const point2 = new Mesh( pointGeometry, pointMaterial );
-		// point2.position.copy( T2 );
-		// this.scene.add( point2 );
-
-		// const point3 = new Mesh( pointGeometry, pointMaterial );
-		// point3.position.copy( P );
-		// this.scene.add( point3 );
-
-		const supportSpotCalculator = team._supportSpotCalculator;
-		const spots = supportSpotCalculator._spots;
+		let supportSpotCalculator = redTeam._supportSpotCalculator;
+		let spots = supportSpotCalculator._spots;
 
 		const spotGeometry = new SphereBufferGeometry( 0.1 );
-		const spotMaterial = new MeshBasicMaterial( { color: 0x00ff00 } );
+		spotGeometry.translate( 0, 0.1, 0 );
+		const spotMaterial = new MeshBasicMaterial( { color: 0xcccccc } );
 
 		for ( let i = 0, l = spots.length; i < l; i ++ ) {
 
 			const spot = spots[ i ];
 
-			const spotMesh = new Mesh( spotGeometry, spotMaterial );
-			spotMesh.position.copy( spot.position );
-			spotMesh.position.y += 0.1;
+			const helper = new Mesh( spotGeometry, spotMaterial );
+			helper.visible = false;
+			helper.position.copy( spot.position );
+			helper.scale.setScalar( spot.score || 0.5 );
+			this.scene.add( helper );
 
-			spotMesh.scale.setScalar( spot.score || 0.5 );
+			this._supportingSpotsRedHelpers.push( helper );
 
-			this.scene.add( spotMesh );
+		}
+
+		// blue
+
+		const teamBlue = this.pitch.teamBlue;
+
+		supportSpotCalculator = teamBlue._supportSpotCalculator;
+		spots = supportSpotCalculator._spots;
+
+		for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+			const spot = spots[ i ];
+
+			const helper = new Mesh( spotGeometry, spotMaterial );
+			helper.visible = false;
+			helper.position.copy( spot.position );
+			helper.scale.setScalar( spot.score || 0.5 );
+			this.scene.add( helper );
+
+			this._supportingSpotsBlueHelpers.push( helper );
 
 		}
 
@@ -293,26 +306,20 @@ class World {
 		this.scene.add( ambientLight );
 
 		const dirLight = new DirectionalLight( 0xffffff, 0.6 );
-		dirLight.position.set( 0, 20, 0 );
+		dirLight.position.set( 5, 20, - 5 );
 		dirLight.matrixAutoUpdate = false;
 		dirLight.updateMatrix();
 		dirLight.castShadow = true;
-		dirLight.shadow.camera.top = 10;
-		dirLight.shadow.camera.bottom = - 10;
-		dirLight.shadow.camera.left = - 10;
-		dirLight.shadow.camera.right = 10;
+		dirLight.shadow.camera.top = 15;
+		dirLight.shadow.camera.bottom = - 15;
+		dirLight.shadow.camera.left = - 15;
+		dirLight.shadow.camera.right = 15;
 		dirLight.shadow.camera.near = 1;
 		dirLight.shadow.camera.far = 25;
 		dirLight.shadow.mapSize.x = 2048;
 		dirLight.shadow.mapSize.y = 2048;
 		dirLight.shadow.bias = 0.01;
 		this.scene.add( dirLight );
-
-		// this.scene.add( new CameraHelper( dirLight.shadow.camera ) );
-
-		const helper = new AxesHelper( 10 );
-		helper.position.y = 0.1;
-		this.scene.add( helper );
 
 		this.renderer = new WebGLRenderer( { antialias: true } );
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
@@ -366,13 +373,19 @@ class World {
 		const teamBlueMaterial = new MeshPhongMaterial( { color: 0x0000ff } );
 
 		this.teamRedMesh = new Mesh( bodyGeometry, teamRedMaterial );
+		this.teamRedMesh.castShadow = true;
 		this.teamRedMesh.matrixAutoUpdate = false;
+
 		this.teamBlueMesh = new Mesh( bodyGeometry, teamBlueMaterial );
+		this.teamBlueMesh.castShadow = true;
 		this.teamBlueMesh.matrixAutoUpdate = false;
 
 		const coneRed = new Mesh( headGeometry, teamRedMaterial );
+		coneRed.castShadow = true;
 		coneRed.matrixAutoUpdate = false;
+
 		const coneBlue = new Mesh( headGeometry, teamBlueMaterial );
+		coneBlue.castShadow = true;
 		coneBlue.matrixAutoUpdate = false;
 
 		this.teamRedMesh.add( coneRed );
@@ -419,7 +432,8 @@ class World {
 
 		// prepare visual helpers
 
-		this._debugPitch( this.pitch );
+		this._debugPitch();
+		this._debugTeams();
 
 		// setup UI
 
@@ -427,6 +441,24 @@ class World {
 		const params = this.debugParameter;
 
 		const folderPitch = gui.addFolder( 'Pitch' );
+
+		folderPitch.add( params, 'showAxes' ).name( 'show axes' ).onChange( ( value ) => {
+
+			this._axesHelper.visible = value;
+
+		} );
+
+		folderPitch.add( params, 'showRegions' ).name( 'show regions' ).onChange( ( value ) => {
+
+			const helpers = this._regionHelpers;
+
+			for ( let i = 0, l = helpers.length; i < l; i ++ ) {
+
+				helpers[ i ].visible = value;
+
+			}
+
+		} );
 
 		folderPitch.add( params, 'showWalls' ).name( 'show walls' ).onChange( ( value ) => {
 
@@ -441,6 +473,42 @@ class World {
 		} );
 
 		folderPitch.open();
+
+		//
+
+		const folderTeamRed = gui.addFolder( 'Team Red' );
+
+		folderTeamRed.add( params, 'showSupportSpotsRed' ).name( 'show support spots' ).onChange( ( value ) => {
+
+			const helpers = this._supportingSpotsRedHelpers;
+
+			for ( let i = 0, l = helpers.length; i < l; i ++ ) {
+
+				helpers[ i ].visible = value;
+
+			}
+
+		} );
+
+		folderTeamRed.open();
+
+		//
+
+		const folderTeamBlue = gui.addFolder( 'Team Blue' );
+
+		folderTeamBlue.add( params, 'showSupportSpotsBlue' ).name( 'show support spots' ).onChange( ( value ) => {
+
+			const helpers = this._supportingSpotsBlueHelpers;
+
+			for ( let i = 0, l = helpers.length; i < l; i ++ ) {
+
+				helpers[ i ].visible = value;
+
+			}
+
+		} );
+
+		folderTeamBlue.open();
 
 	}
 
