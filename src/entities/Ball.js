@@ -161,15 +161,18 @@ class Ball extends MovingEntity {
 
 	_isScored() {
 
-		const goalRed = this.pitch.teamRed.homeGoal;
-		const goalBlue = this.pitch.teamBlue.homeGoal;
+		const teamBlue = this.pitch.teamBlue;
+		const teamRed = this.pitch.teamRed;
+
+		const goalBlue = teamBlue.homeGoal;
+		const goalRed = teamRed.homeGoal;
 
 		if ( goalRed.leftPost === null ) goalRed.computePosts();
 		if ( goalBlue.leftPost === null ) goalBlue.computePosts();
 
 		if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalRed.leftPost.x, goalRed.leftPost.z, goalRed.rightPost.x, goalRed.rightPost.z ) ) {
 
-			goalRed.goals ++;
+			teamBlue.goals ++;
 			this.sendMessage( this.pitch, MESSAGE.GOAL );
 			return true;
 
@@ -177,7 +180,7 @@ class Ball extends MovingEntity {
 
 		if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalBlue.leftPost.x, goalBlue.leftPost.z, goalBlue.rightPost.x, goalBlue.rightPost.z ) ) {
 
-			goalBlue.goals ++;
+			teamRed.goals ++;
 			this.sendMessage( this.pitch, MESSAGE.GOAL );
 			return true;
 

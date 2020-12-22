@@ -26,8 +26,13 @@ class World {
 		this.assetManager = null;
 
 		this.ui = {
-			startScreen: document.getElementById( 'start-screen' ),
+			goalsBlue: document.getElementById( 'goals-blue' ),
+			goalsRed: document.getElementById( 'goals-red' )
 		};
+
+		//
+
+		this.pitch = null;
 
 		//
 
@@ -71,7 +76,15 @@ class World {
 
 		this._startAnimation();
 
-		// this.ui.startScreen.remove();
+	}
+
+	refreshUI() {
+
+		const teamBlue = this.pitch.teamBlue;
+		const teamRed = this.pitch.teamRed;
+
+		this.ui.goalsBlue.innerText = teamBlue.goals;
+		this.ui.goalsRed.innerText = teamRed.goals;
 
 	}
 
@@ -168,7 +181,8 @@ class World {
 
 		//
 
-		const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 1, 16 );
+		const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 0.5, 16 );
+		bodyGeometry.translate( 0, 0.25, 0 );
 		const headGeometry = new ConeBufferGeometry( 0.2, 0.2, 16 );
 		headGeometry.rotateX( Math.PI * 0.5 );
 		headGeometry.translate( 0, 0.3, 0.3 );
@@ -203,7 +217,7 @@ class World {
 		goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
 		this.entityManager.add( goalBlue );
 
-		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
+		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
 		this.entityManager.add( pitch );
 
 		const ball = this._createBall( pitch );
@@ -221,6 +235,8 @@ class World {
 		pitch.ball = ball;
 		pitch.teamBlue = teamBlue;
 		pitch.teamRed = teamRed;
+
+		this.pitch = pitch;
 
 		// temp
 
@@ -252,9 +268,9 @@ class World {
 
 	}
 
-	_createPitch( width, height ) {
+	_createPitch( width, height, world ) {
 
-		const pitch = new Pitch( width, height );
+		const pitch = new Pitch( width, height, world );
 		const pitchMesh = this.pitchMesh.clone();
 		pitch.setRenderComponent( pitchMesh, sync );
 

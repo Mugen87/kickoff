@@ -15,8 +15,6 @@ class Goal extends GameEntity {
 		this.height = height;
 		this.color = color;
 
-		this.goals = 0;
-
 		this.leftPost = null;
 		this.rightPost = null;
 

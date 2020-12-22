@@ -17,7 +17,7 @@ class Player extends Vehicle {
 		super();
 
 		this.boundingRadius = 0.2;
-		this.maxSpeed = 3;
+		this.maxSpeed = 2;
 		this.updateOrientation = false;
 
 		this.role = role;

@@ -56358,15 +56358,18 @@
 
 		_isScored() {
 
-			const goalRed = this.pitch.teamRed.homeGoal;
-			const goalBlue = this.pitch.teamBlue.homeGoal;
+			const teamBlue = this.pitch.teamBlue;
+			const teamRed = this.pitch.teamRed;
+
+			const goalBlue = teamBlue.homeGoal;
+			const goalRed = teamRed.homeGoal;
 
 			if ( goalRed.leftPost === null ) goalRed.computePosts();
 			if ( goalBlue.leftPost === null ) goalBlue.computePosts();
 
 			if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalRed.leftPost.x, goalRed.leftPost.z, goalRed.rightPost.x, goalRed.rightPost.z ) ) {
 
-				goalRed.goals ++;
+				teamBlue.goals ++;
 				this.sendMessage( this.pitch, MESSAGE.GOAL );
 				return true;
 
@@ -56374,7 +56377,7 @@
 
 			if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalBlue.leftPost.x, goalBlue.leftPost.z, goalBlue.rightPost.x, goalBlue.rightPost.z ) ) {
 
-				goalBlue.goals ++;
+				teamRed.goals ++;
 				this.sendMessage( this.pitch, MESSAGE.GOAL );
 				return true;
 
@@ -56429,8 +56432,6 @@
 			this.width = width;
 			this.height = height;
 			this.color = color;
-
-			this.goals = 0;
 
 			this.leftPost = null;
 			this.rightPost = null;
@@ -56547,11 +56548,11 @@
 
 	class Pitch extends GameEntity {
 
-		constructor( width, height ) {
+		constructor( width, height, world ) {
 
 			super();
 
-			this.field = null;
+			this.world = world;
 
 			this.walls = [
 				new Plane$1( new Vector3$1( 0, 0, - 1 ), 7.5 ), // top
@@ -56589,6 +56590,8 @@
 
 					this.teamBlue.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
 					this.teamRed.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+					this.world.refreshUI();
 
 					return true;
 
@@ -57524,7 +57527,7 @@
 			super();
 
 			this.boundingRadius = 0.2;
-			this.maxSpeed = 3;
+			this.maxSpeed = 2;
 			this.updateOrientation = false;
 
 			this.role = role;
@@ -57749,7 +57752,7 @@
 
 			const arriveBehavior = new ArriveBehavior();
 			arriveBehavior.active = false;
-			arriveBehavior.deceleration = 2;
+			arriveBehavior.deceleration = 1.5;
 			this.steering.add( arriveBehavior );
 
 			const pursuitBehavior = new PursuitBehavior();
@@ -58133,6 +58136,8 @@
 			this.ball = ball;
 			this.pitch = pitch;
 			this.homeGoal = homeGoal;
+
+			this.goals = 0;
 
 			this.opposingGoal = opposingGoal;
 			this.opposingTeam = null;
@@ -58718,8 +58723,13 @@
 			this.assetManager = null;
 
 			this.ui = {
-				startScreen: document.getElementById( 'start-screen' ),
+				goalsBlue: document.getElementById( 'goals-blue' ),
+				goalsRed: document.getElementById( 'goals-red' )
 			};
+
+			//
+
+			this.pitch = null;
 
 			//
 
@@ -58763,7 +58773,15 @@
 
 			this._startAnimation();
 
-			// this.ui.startScreen.remove();
+		}
+
+		refreshUI() {
+
+			const teamBlue = this.pitch.teamBlue;
+			const teamRed = this.pitch.teamRed;
+
+			this.ui.goalsBlue.innerText = teamBlue.goals;
+			this.ui.goalsRed.innerText = teamRed.goals;
 
 		}
 
@@ -58860,7 +58878,8 @@
 
 			//
 
-			const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 1, 16 );
+			const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 0.5, 16 );
+			bodyGeometry.translate( 0, 0.25, 0 );
 			const headGeometry = new ConeBufferGeometry( 0.2, 0.2, 16 );
 			headGeometry.rotateX( Math.PI * 0.5 );
 			headGeometry.translate( 0, 0.3, 0.3 );
@@ -58895,7 +58914,7 @@
 			goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
 			this.entityManager.add( goalBlue );
 
-			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
+			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
 			this.entityManager.add( pitch );
 
 			const ball = this._createBall( pitch );
@@ -58913,6 +58932,8 @@
 			pitch.ball = ball;
 			pitch.teamBlue = teamBlue;
 			pitch.teamRed = teamRed;
+
+			this.pitch = pitch;
 
 			// temp
 
@@ -58944,9 +58965,9 @@
 
 		}
 
-		_createPitch( width, height ) {
+		_createPitch( width, height, world ) {
 
-			const pitch = new Pitch( width, height );
+			const pitch = new Pitch( width, height, world );
 			const pitchMesh = this.pitchMesh.clone();
 			pitch.setRenderComponent( pitchMesh, sync );
 
@@ -59120,12 +59141,6 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
-	// const startButton = document.getElementById( 'start-screen-start' );
-	// startButton.addEventListener( 'click', () => {
-
-	// 	world.init();
-
-	// } );
 	world.init();
 
 })));

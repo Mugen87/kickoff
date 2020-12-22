@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css?family=Jura');
+
 * {
 	-webkit-user-select: none;
 	-moz-user-select: none;
@@ -7,18 +9,32 @@
 
 body {
 	margin:0;
+	font-family: 'Jura', sans-serif;
+	color: white;
 }
 
-.full-screen {
-	position: fixed;
-	height: 100%;
-	width: 100%;
-	background-color: #ffffff;
+#score {
+	position: absolute;
+	top: 16px;
+	left: 16px;
 	display: flex;
-	flex-direction: column;
-}
-
-#start-screen {
 	align-items: center;
 	justify-content: center;
+}
+
+#score .blue {
+	width: 32px;
+	height: 32px;
+	background-color: blue;
+}
+
+#score .item {
+	font-size: 18px;
+	margin: 0px 4px;
+}
+
+#score .red {
+	width: 32px;
+	height: 32px;
+	background-color: red;
 }

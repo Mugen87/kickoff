@@ -39,6 +39,8 @@ class Team extends GameEntity {
 		this.pitch = pitch;
 		this.homeGoal = homeGoal;
 
+		this.goals = 0;
+
 		this.opposingGoal = opposingGoal;
 		this.opposingTeam = null;
 

@@ -9,11 +9,11 @@ import Region from '../etc/Region.js';
 
 class Pitch extends GameEntity {
 
-	constructor( width, height ) {
+	constructor( width, height, world ) {
 
 		super();
 
-		this.field = null;
+		this.world = world;
 
 		this.walls = [
 			new Plane( new Vector3( 0, 0, - 1 ), 7.5 ), // top
@@ -51,6 +51,8 @@ class Pitch extends GameEntity {
 
 				this.teamBlue.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
 				this.teamRed.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+				this.world.refreshUI();
 
 				return true;
 

@@ -23,7 +23,7 @@ class FieldPlayer extends Player {
 
 		const arriveBehavior = new ArriveBehavior();
 		arriveBehavior.active = false;
-		arriveBehavior.deceleration = 2;
+		arriveBehavior.deceleration = 1.5;
 		this.steering.add( arriveBehavior );
 
 		const pursuitBehavior = new PursuitBehavior();
