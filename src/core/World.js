@@ -4,6 +4,7 @@
 
 import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture } from 'three';
 import { EntityManager, Time } from 'yuka';
+import * as DAT from 'dat.gui';
 
 import AssetManager from './AssetManager.js';
 import Ball from '../entities/Ball.js';
@@ -54,6 +55,12 @@ class World {
 			height: 1
 		};
 
+		this.debugParameter = {
+			'showWalls': false
+		};
+
+		this._wallHelpers = [];
+
 		//
 
 		this._requestID = null;
@@ -73,6 +80,8 @@ class World {
 		this._initScene();
 
 		this._initGame();
+
+		this._initUI();
 
 		this._startAnimation();
 
@@ -100,6 +109,172 @@ class World {
 
 		this.renderer.render( this.scene, this.camera );
 
+
+	}
+
+	_createBall( pitch ) {
+
+		const ball = new Ball( pitch );
+		const ballMesh = this.ballMesh.clone();
+		ball.setRenderComponent( ballMesh, sync );
+
+		this.scene.add( ballMesh );
+
+		return ball;
+
+	}
+
+	_createGoal( width, height, color ) {
+
+		const goal = new Goal( width, height, color );
+		const goalMesh = this.goalMesh.clone();
+		goal.setRenderComponent( goalMesh, sync );
+
+		this.scene.add( goalMesh );
+
+		return goal;
+
+	}
+
+	_createPitch( width, height, world ) {
+
+		const pitch = new Pitch( width, height, world );
+		const pitchMesh = this.pitchMesh.clone();
+		pitch.setRenderComponent( pitchMesh, sync );
+
+		this.scene.add( pitchMesh );
+
+		return pitch;
+
+	}
+
+	_createTeam( ball, pitch, homeGoal, opposingGoal, color ) {
+
+		const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
+
+		const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+
+		for ( let i = 0, l = team.children.length; i < l; i ++ ) {
+
+			const player = team.children[ i ];
+			const playerMesh = baseMesh.clone();
+			player.setRenderComponent( playerMesh, sync );
+			this.scene.add( playerMesh );
+
+		}
+
+		return team;
+
+	}
+
+	_debugPitch( pitch ) {
+
+		// regions
+
+		const regions = pitch.regions;
+
+		for ( let i = 0, l = regions.length; i < l; i ++ ) {
+
+			const region = regions[ i ];
+
+			const canvas = document.createElement( 'canvas' );
+			const context = canvas.getContext( '2d' );
+
+			canvas.width = 128;
+			canvas.height = 128;
+
+			context.fillStyle = '#ffffff';
+			context.fillRect( 0, 0, canvas.width, canvas.height );
+
+			context.fillStyle = "#000000";
+			context.font = '24px Arial';
+			context.textAlign = 'center';
+			context.textBaseline = 'middle';
+			context.fillText( `ID: ${i}`, canvas.width / 2, canvas.height / 2 );
+
+			const geometry = new PlaneBufferGeometry( region.width, region.height );
+			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
+			const mesh = new Mesh( geometry, material );
+
+			mesh.position.copy( region.center );
+			mesh.rotation.x = Math.PI * - 0.5;
+
+			this.scene.add( mesh );
+
+		}
+
+		// walls
+
+		const walls = pitch.walls;
+
+		for ( let i = 0, l = walls.length; i < l; i ++ ) {
+
+			const wall = walls[ i ];
+			wall.normal.isVector3 = true;
+
+			const helper = new PlaneHelper( wall, ( i < 2 ) ? 20 : 15 );
+			helper.visible = false;
+			this.scene.add( helper );
+
+			this._wallHelpers.push( helper );
+
+		}
+
+	}
+
+	_debugTeam( team ) {
+
+		// const C = new Vector3();
+		// const R = 4;
+		// const P = new Vector3( - 8, 0, 0 );
+		// const T1 = new Vector3();
+		// const T2 = new Vector3();
+
+		// team._computeTangentPoints( C, R, P, T1, T2 );
+
+		// const circleGeometry = new CircleBufferGeometry( R, 32 );
+		// circleGeometry.rotateX( Math.PI * - 0.5 );
+		// const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
+		// const circle = new Mesh( circleGeometry, circleMaterial );
+		// circle.position.copy( C );
+		// circle.position.y = 0.01;
+		// this.scene.add( circle );
+
+		// const pointGeometry = new SphereBufferGeometry( 0.1 );
+		// pointGeometry.translate( 0, 0.05, 0 );
+		// const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
+
+		// const point1 = new Mesh( pointGeometry, pointMaterial );
+		// point1.position.copy( T1 );
+		// this.scene.add( point1 );
+
+		// const point2 = new Mesh( pointGeometry, pointMaterial );
+		// point2.position.copy( T2 );
+		// this.scene.add( point2 );
+
+		// const point3 = new Mesh( pointGeometry, pointMaterial );
+		// point3.position.copy( P );
+		// this.scene.add( point3 );
+
+		const supportSpotCalculator = team._supportSpotCalculator;
+		const spots = supportSpotCalculator._spots;
+
+		const spotGeometry = new SphereBufferGeometry( 0.1 );
+		const spotMaterial = new MeshBasicMaterial( { color: 0x00ff00 } );
+
+		for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+			const spot = spots[ i ];
+
+			const spotMesh = new Mesh( spotGeometry, spotMaterial );
+			spotMesh.position.copy( spot.position );
+			spotMesh.position.y += 0.1;
+
+			spotMesh.scale.setScalar( spot.score || 0.5 );
+
+			this.scene.add( spotMesh );
+
+		}
 
 	}
 
@@ -238,172 +413,34 @@ class World {
 
 		this.pitch = pitch;
 
-		// temp
-
-		this._debugPitch( pitch );
-
 	}
 
-	_createBall( pitch ) {
+	_initUI() {
 
-		const ball = new Ball( pitch );
-		const ballMesh = this.ballMesh.clone();
-		ball.setRenderComponent( ballMesh, sync );
+		// prepare visual helpers
 
-		this.scene.add( ballMesh );
+		this._debugPitch( this.pitch );
 
-		return ball;
+		// setup UI
 
-	}
+		const gui = new DAT.GUI( { width: 300 } );
+		const params = this.debugParameter;
 
-	_createGoal( width, height, color ) {
+		const folderPitch = gui.addFolder( 'Pitch' );
 
-		const goal = new Goal( width, height, color );
-		const goalMesh = this.goalMesh.clone();
-		goal.setRenderComponent( goalMesh, sync );
+		folderPitch.add( params, 'showWalls' ).name( 'show walls' ).onChange( ( value ) => {
 
-		this.scene.add( goalMesh );
+			const helpers = this._wallHelpers;
 
-		return goal;
+			for ( let i = 0, l = helpers.length; i < l; i ++ ) {
 
-	}
+				helpers[ i ].visible = value;
 
-	_createPitch( width, height, world ) {
+			}
 
-		const pitch = new Pitch( width, height, world );
-		const pitchMesh = this.pitchMesh.clone();
-		pitch.setRenderComponent( pitchMesh, sync );
+		} );
 
-		this.scene.add( pitchMesh );
-
-		return pitch;
-
-	}
-
-	_createTeam( ball, pitch, homeGoal, opposingGoal, color ) {
-
-		const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
-
-		const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
-
-		for ( let i = 0, l = team.children.length; i < l; i ++ ) {
-
-			const player = team.children[ i ];
-			const playerMesh = baseMesh.clone();
-			player.setRenderComponent( playerMesh, sync );
-			this.scene.add( playerMesh );
-
-		}
-
-		return team;
-
-	}
-
-	_debugPitch( pitch ) {
-
-		// regions
-
-		const regions = pitch.regions;
-
-		for ( let i = 0, l = regions.length; i < l; i ++ ) {
-
-			const region = regions[ i ];
-
-			const canvas = document.createElement( 'canvas' );
-			const context = canvas.getContext( '2d' );
-
-			canvas.width = 128;
-			canvas.height = 128;
-
-			context.fillStyle = '#ffffff';
-			context.fillRect( 0, 0, canvas.width, canvas.height );
-
-			context.fillStyle = "#000000";
-			context.font = '24px Arial';
-			context.textAlign = 'center';
-			context.textBaseline = 'middle';
-			context.fillText( `ID: ${i}`, canvas.width / 2, canvas.height / 2 );
-
-			const geometry = new PlaneBufferGeometry( region.width, region.height );
-			const material = new MeshBasicMaterial( { color: 0xffffff * Math.random(), map: new CanvasTexture( canvas ), polygonOffset: true, polygonOffsetFactor: - 4 } );
-			const mesh = new Mesh( geometry, material );
-
-			mesh.position.copy( region.center );
-			mesh.rotation.x = Math.PI * - 0.5;
-
-			this.scene.add( mesh );
-
-		}
-
-		// walls
-
-		const walls = pitch.walls;
-
-		for ( let i = 0, l = walls.length; i < l; i ++ ) {
-
-			const wall = walls[ i ];
-			wall.normal.isVector3 = true;
-
-			const helper = new PlaneHelper( wall, ( i < 2 ) ? 20 : 15 );
-			this.scene.add( helper );
-
-		}
-
-	}
-
-	_debugTeam( team ) {
-
-		// const C = new Vector3();
-		// const R = 4;
-		// const P = new Vector3( - 8, 0, 0 );
-		// const T1 = new Vector3();
-		// const T2 = new Vector3();
-
-		// team._computeTangentPoints( C, R, P, T1, T2 );
-
-		// const circleGeometry = new CircleBufferGeometry( R, 32 );
-		// circleGeometry.rotateX( Math.PI * - 0.5 );
-		// const circleMaterial = new MeshBasicMaterial( { color: 0xffffff, polygonOffset: true, polygonOffsetFactor: - 5 } );
-		// const circle = new Mesh( circleGeometry, circleMaterial );
-		// circle.position.copy( C );
-		// circle.position.y = 0.01;
-		// this.scene.add( circle );
-
-		// const pointGeometry = new SphereBufferGeometry( 0.1 );
-		// pointGeometry.translate( 0, 0.05, 0 );
-		// const pointMaterial = new MeshBasicMaterial( { color: 0xff0000 } );
-
-		// const point1 = new Mesh( pointGeometry, pointMaterial );
-		// point1.position.copy( T1 );
-		// this.scene.add( point1 );
-
-		// const point2 = new Mesh( pointGeometry, pointMaterial );
-		// point2.position.copy( T2 );
-		// this.scene.add( point2 );
-
-		// const point3 = new Mesh( pointGeometry, pointMaterial );
-		// point3.position.copy( P );
-		// this.scene.add( point3 );
-
-		const supportSpotCalculator = team._supportSpotCalculator;
-		const spots = supportSpotCalculator._spots;
-
-		const spotGeometry = new SphereBufferGeometry( 0.1 );
-		const spotMaterial = new MeshBasicMaterial( { color: 0x00ff00 } );
-
-		for ( let i = 0, l = spots.length; i < l; i ++ ) {
-
-			const spot = spots[ i ];
-
-			const spotMesh = new Mesh( spotGeometry, spotMaterial );
-			spotMesh.position.copy( spot.position );
-			spotMesh.position.y += 0.1;
-
-			spotMesh.scale.setScalar( spot.score || 0.5 );
-
-			this.scene.add( spotMesh );
-
-		}
+		folderPitch.open();
 
 	}
 
