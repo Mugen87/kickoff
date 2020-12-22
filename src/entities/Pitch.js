@@ -3,6 +3,7 @@
  */
 
 import { GameEntity, Plane, Vector3 } from 'yuka';
+import { MESSAGE, TEAM_STATES } from '../core/Constants.js';
 
 import Region from '../etc/Region.js';
 
@@ -21,8 +22,12 @@ class Pitch extends GameEntity {
 			new Plane( new Vector3( 1, 0, 0 ), 10 ), // left (blue goal)
 		];
 
-		this.isPlaying = false;
+		this.isPlaying = true;
 		this.isGoalKeeperInBallPossession = false;
+
+		this.ball = null;
+		this.teamRed = null;
+		this.teamBlue = null;
 
 		this.playingArea = new Region( this.position.clone(), width, height );
 
@@ -31,6 +36,27 @@ class Pitch extends GameEntity {
 
 		this.regions = [];
 		this._createRegions();
+
+	}
+
+	handleMessage( telegram ) {
+
+		switch ( telegram.message ) {
+
+			case MESSAGE.GOAL:
+
+				this.isPlaying = false;
+
+				this.ball.placeAt( new Vector3( 0, 0, 0 ) );
+
+				this.teamBlue.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+				this.teamRed.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+				return true;
+
+		}
+
+		return false;
 
 	}
 

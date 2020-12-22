@@ -56121,6 +56121,83 @@
 
 	}
 
+	const MESSAGE = {
+		RETURN_HOME: 'RETURN_HOME',
+		PASS_TO_ME: 'PASS_TO_ME',
+		RECEIVE_BALL: 'RECEIVE_BALL',
+		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
+		GOAL: 'GOAL'
+	};
+	const GOALKEEPER_STATES = {
+		RETURN_HOME: 'RETURN_HOME',
+		TEND_GOAL: 'TEND_GOAL',
+		PUT_BALL_BACK_IN_PLAY: 'PUT_BALL_BACK_IN_PLAY',
+		INTERCEPT_BALL: 'INTERCEPT_BALL'
+	};
+	const FIELDPLAYER_STATES = {
+		CHASE_BALL: 'CHASE_BALL',
+		DRIBBLE: 'DRIBBLE',
+		KICK_BALL: 'KICK_BALL',
+		RECEIVE_BALL: 'RECEIVE_BALL',
+		RETURN_HOME: 'RETURN_HOME',
+		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
+		WAIT: 'WAIT'
+	};
+	const TEAM_STATES = {
+		ATTACKING: 'ATTACKING',
+		DEFENDING: 'DEFENDING',
+		PREPARE_FOR_KICKOFF: 'PREPARE_FOR_KICKOFF'
+	};
+	const CONFIG = {
+		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
+		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+		GOALKEEPER_MIN_PASS_DISTANCE: 2, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
+		GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
+		PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 0.5, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
+		PLAYER_CHANCE_ATTEMPT_POT_SHOT: 0.005, // the chance a player might take a random pot shot at the goal
+		PLAYER_COMFORT_ZONE: 3, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
+		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
+		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
+		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
+		PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
+		PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
+		PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
+		PLAYER_MAX_SHOOTING_FORCE: 4, // the force used for shooting at the goal
+		PLAYER_MAX_SPEED_WITH_BALL: 0.8, // max speed with ball
+		PLAYER_MAX_SPEED_WITHOUT_BALL: 1, // max speed without ball
+		PLAYER_MIN_PASS_DISTANCE: 5, // the minimum distance a receiving player must be from the passing player
+		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
+		PLAYER_RECEIVING_RANGE: 6, // how close the ball must be to a receiver before he starts chasing it
+		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
+		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
+		PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
+		SUPPORT_SPOT_CALCULATOR_SLICE_X: 12, // x dimension of spot
+		SUPPORT_SPOT_CALCULATOR_SLICE_Y: 5, // y dimension of spot
+		SUPPORT_SPOT_CALCULATOR_SCORE_CAN_PASS: 2, // score when pass is possible
+		SUPPORT_SPOT_CALCULATOR_SCORE_CAN_SCORE: 1, // score when a goal is possible
+		SUPPORT_SPOT_CALCULATOR_SCORE_DISTANCE: 2, // score for pass distance
+		SUPPORT_SPOT_CALCULATOR_OPT_DISTANCE: 5, // optimal distance for a pass
+		SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY: 1 // updates per second
+	};
+
+	const TEAM = {
+		RED: 0,
+		BLUE: 1
+	};
+
+	const ROLE = {
+		GOALKEEPER: 0,
+		ATTACKER: 1,
+		DEFENDER: 2
+	};
+
+	CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ = CONFIG.GOALKEEPER_INTERCEPT_RANGE * CONFIG.GOALKEEPER_INTERCEPT_RANGE;
+	CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ = CONFIG.GOALKEEPER_IN_TARGET_RANGE * CONFIG.GOALKEEPER_IN_TARGET_RANGE;
+	CONFIG.PLAYER_COMFORT_ZONE_SQ = CONFIG.PLAYER_COMFORT_ZONE * CONFIG.PLAYER_COMFORT_ZONE;
+	CONFIG.PLAYER_IN_TARGET_RANGE_SQ = CONFIG.PLAYER_IN_TARGET_RANGE * CONFIG.PLAYER_IN_TARGET_RANGE;
+	CONFIG.PLAYER_KICKING_DISTANCE_SQ = CONFIG.PLAYER_KICKING_DISTANCE * CONFIG.PLAYER_KICKING_DISTANCE;
+	CONFIG.PLAYER_RECEIVING_RANGE_SQ = CONFIG.PLAYER_RECEIVING_RANGE * CONFIG.PLAYER_RECEIVING_RANGE;
+
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
@@ -56138,7 +56215,6 @@
 
 			this.boundingRadius = 0.1;
 
-			this.owner = null;
 			this.pitch = pitch;
 
 			this.mass = 0.44; // 440g
@@ -56170,7 +56246,11 @@
 
 			super.update( delta );
 
-			this._collisionDetection();
+			if ( this._isScored() === false ) {
+
+				this._collisionDetection();
+
+			}
 
 		}
 
@@ -56276,83 +56356,65 @@
 
 		}
 
+		_isScored() {
+
+			const goalRed = this.pitch.teamRed.homeGoal;
+			const goalBlue = this.pitch.teamBlue.homeGoal;
+
+			if ( goalRed.leftPost === null ) goalRed.computePosts();
+			if ( goalBlue.leftPost === null ) goalBlue.computePosts();
+
+			if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalRed.leftPost.x, goalRed.leftPost.z, goalRed.rightPost.x, goalRed.rightPost.z ) ) {
+
+				goalRed.goals ++;
+				this.sendMessage( this.pitch, MESSAGE.GOAL );
+				return true;
+
+			}
+
+			if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalBlue.leftPost.x, goalBlue.leftPost.z, goalBlue.rightPost.x, goalBlue.rightPost.z ) ) {
+
+				goalBlue.goals ++;
+				this.sendMessage( this.pitch, MESSAGE.GOAL );
+				return true;
+
+			}
+
+
+			return false;
+
+		}
+
 	}
 
-	const MESSAGE = {
-		RETURN_HOME: 'RETURN_HOME',
-		PASS_TO_ME: 'PASS_TO_ME',
-		RECEIVE_BALL: 'RECEIVE_BALL',
-		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER'
-	};
-	const GOALKEEPER_STATES = {
-		RETURN_HOME: 'RETURN_HOME',
-		TEND_GOAL: 'TEND_GOAL',
-		PUT_BALL_BACK_IN_PLAY: 'PUT_BALL_BACK_IN_PLAY',
-		INTERCEPT_BALL: 'INTERCEPT_BALL'
-	};
-	const FIELDPLAYER_STATES = {
-		CHASE_BALL: 'CHASE_BALL',
-		DRIBBLE: 'DRIBBLE',
-		KICK_BALL: 'KICK_BALL',
-		RECEIVE_BALL: 'RECEIVE_BALL',
-		RETURN_HOME: 'RETURN_HOME',
-		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
-		WAIT: 'WAIT'
-	};
-	const TEAM_STATES = {
-		ATTACKING: 'ATTACKING',
-		DEFENDING: 'DEFENDING',
-		PREPARE_FOR_KICKOFF: 'PREPARE_FOR_KICKOFF'
-	};
-	const CONFIG = {
-		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
-		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
-		GOALKEEPER_MIN_PASS_DISTANCE: 2, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
-		GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
-		PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 0.5, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
-		PLAYER_CHANCE_ATTEMPT_POT_SHOT: 0.005, // the chance a player might take a random pot shot at the goal
-		PLAYER_COMFORT_ZONE: 3, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
-		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
-		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
-		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
-		PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
-		PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
-		PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
-		PLAYER_MAX_SHOOTING_FORCE: 4, // the force used for shooting at the goal
-		PLAYER_MAX_SPEED_WITH_BALL: 0.8, // max speed with ball
-		PLAYER_MAX_SPEED_WITHOUT_BALL: 1, // max speed without ball
-		PLAYER_MIN_PASS_DISTANCE: 5, // the minimum distance a receiving player must be from the passing player
-		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
-		PLAYER_RECEIVING_RANGE: 6, // how close the ball must be to a receiver before he starts chasing it
-		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
-		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
-		PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
-		SUPPORT_SPOT_CALCULATOR_SLICE_X: 12, // x dimension of spot
-		SUPPORT_SPOT_CALCULATOR_SLICE_Y: 5, // y dimension of spot
-		SUPPORT_SPOT_CALCULATOR_SCORE_CAN_PASS: 2, // score when pass is possible
-		SUPPORT_SPOT_CALCULATOR_SCORE_CAN_SCORE: 1, // score when a goal is possible
-		SUPPORT_SPOT_CALCULATOR_SCORE_DISTANCE: 2, // score for pass distance
-		SUPPORT_SPOT_CALCULATOR_OPT_DISTANCE: 5, // optimal distance for a pass
-		SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY: 1 // updates per second
-	};
+	function checkLineIntersection( line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY ) {
 
-	const TEAM = {
-		RED: 0,
-		BLUE: 1
-	};
+		let a, b;
 
-	const ROLE = {
-		GOALKEEPER: 0,
-		ATTACKER: 1,
-		DEFENDER: 2
-	};
+		const denominator = ( ( line2EndY - line2StartY ) * ( line1EndX - line1StartX ) ) - ( ( line2EndX - line2StartX ) * ( line1EndY - line1StartY ) );
 
-	CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ = CONFIG.GOALKEEPER_INTERCEPT_RANGE * CONFIG.GOALKEEPER_INTERCEPT_RANGE;
-	CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ = CONFIG.GOALKEEPER_IN_TARGET_RANGE * CONFIG.GOALKEEPER_IN_TARGET_RANGE;
-	CONFIG.PLAYER_COMFORT_ZONE_SQ = CONFIG.PLAYER_COMFORT_ZONE * CONFIG.PLAYER_COMFORT_ZONE;
-	CONFIG.PLAYER_IN_TARGET_RANGE_SQ = CONFIG.PLAYER_IN_TARGET_RANGE * CONFIG.PLAYER_IN_TARGET_RANGE;
-	CONFIG.PLAYER_KICKING_DISTANCE_SQ = CONFIG.PLAYER_KICKING_DISTANCE * CONFIG.PLAYER_KICKING_DISTANCE;
-	CONFIG.PLAYER_RECEIVING_RANGE_SQ = CONFIG.PLAYER_RECEIVING_RANGE * CONFIG.PLAYER_RECEIVING_RANGE;
+		if ( denominator === 0 ) {
+
+			return false;
+
+		}
+
+		a = line1StartY - line2StartY;
+		b = line1StartX - line2StartX;
+		const numerator1 = ( ( line2EndX - line2StartX ) * a ) - ( ( line2EndY - line2StartY ) * b );
+		const numerator2 = ( ( line1EndX - line1StartX ) * a ) - ( ( line1EndY - line1StartY ) * b );
+		a = numerator1 / denominator;
+		b = numerator2 / denominator;
+
+		if ( ( a > 0 && a < 1 ) && ( b > 0 && b < 1 ) ) {
+
+			return true;
+
+		}
+
+		return false;
+
+	}
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87
@@ -56367,6 +56429,11 @@
 			this.width = width;
 			this.height = height;
 			this.color = color;
+
+			this.goals = 0;
+
+			this.leftPost = null;
+			this.rightPost = null;
 
 		}
 
@@ -56383,6 +56450,33 @@
 			}
 
 			return direction;
+
+		}
+
+		computePosts() {
+
+			this.leftPost = new Vector3$1();
+			this.rightPost = new Vector3$1();
+
+			const halfSize = this.width / 2;
+
+			if ( this.color === TEAM.RED ) {
+
+				this.leftPost.x = this.position.x;
+				this.leftPost.z = this.position.z + halfSize;
+
+				this.rightPost.x = this.position.x;
+				this.rightPost.z = this.position.z - halfSize;
+
+			} else {
+
+				this.leftPost.x = this.position.x;
+				this.leftPost.z = this.position.z - halfSize;
+
+				this.rightPost.x = this.position.x;
+				this.rightPost.z = this.position.z + halfSize;
+
+			}
 
 		}
 
@@ -56466,8 +56560,12 @@
 				new Plane$1( new Vector3$1( 1, 0, 0 ), 10 ), // left (blue goal)
 			];
 
-			this.isPlaying = false;
+			this.isPlaying = true;
 			this.isGoalKeeperInBallPossession = false;
+
+			this.ball = null;
+			this.teamRed = null;
+			this.teamBlue = null;
 
 			this.playingArea = new Region( this.position.clone(), width, height );
 
@@ -56476,6 +56574,27 @@
 
 			this.regions = [];
 			this._createRegions();
+
+		}
+
+		handleMessage( telegram ) {
+
+			switch ( telegram.message ) {
+
+				case MESSAGE.GOAL:
+
+					this.isPlaying = false;
+
+					this.ball.placeAt( new Vector3$1( 0, 0, 0 ) );
+
+					this.teamBlue.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+					this.teamRed.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+					return true;
+
+			}
+
+			return false;
 
 		}
 
@@ -56741,7 +56860,7 @@
 
 			if ( team.areAllPlayersAtHome() && team.opposingTeam.areAllPlayersAtHome() ) {
 
-				team.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+				team.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 			}
 
@@ -58777,7 +58896,6 @@
 			this.entityManager.add( goalBlue );
 
 			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
-			pitch.isPlaying = true;
 			this.entityManager.add( pitch );
 
 			const ball = this._createBall( pitch );
@@ -58791,6 +58909,10 @@
 
 			teamRed.opposingTeam = teamBlue;
 			teamBlue.opposingTeam = teamRed;
+
+			pitch.ball = ball;
+			pitch.teamBlue = teamBlue;
+			pitch.teamRed = teamRed;
 
 			// temp
 

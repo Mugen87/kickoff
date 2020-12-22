@@ -3,6 +3,7 @@
  */
 
 import { MovingEntity, Ray, Vector3 } from 'yuka';
+import { MESSAGE } from '../core/Constants';
 
 const _acceleration = new Vector3();
 const _brakingForce = new Vector3();
@@ -17,7 +18,6 @@ class Ball extends MovingEntity {
 
 		this.boundingRadius = 0.1;
 
-		this.owner = null;
 		this.pitch = pitch;
 
 		this.mass = 0.44; // 440g
@@ -49,7 +49,11 @@ class Ball extends MovingEntity {
 
 		super.update( delta );
 
-		this._collisionDetection();
+		if ( this._isScored() === false ) {
+
+			this._collisionDetection();
+
+		}
 
 	}
 
@@ -154,6 +158,64 @@ class Ball extends MovingEntity {
 		}
 
 	}
+
+	_isScored() {
+
+		const goalRed = this.pitch.teamRed.homeGoal;
+		const goalBlue = this.pitch.teamBlue.homeGoal;
+
+		if ( goalRed.leftPost === null ) goalRed.computePosts();
+		if ( goalBlue.leftPost === null ) goalBlue.computePosts();
+
+		if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalRed.leftPost.x, goalRed.leftPost.z, goalRed.rightPost.x, goalRed.rightPost.z ) ) {
+
+			goalRed.goals ++;
+			this.sendMessage( this.pitch, MESSAGE.GOAL );
+			return true;
+
+		}
+
+		if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalBlue.leftPost.x, goalBlue.leftPost.z, goalBlue.rightPost.x, goalBlue.rightPost.z ) ) {
+
+			goalBlue.goals ++;
+			this.sendMessage( this.pitch, MESSAGE.GOAL );
+			return true;
+
+		}
+
+
+		return false;
+
+	}
+
+}
+
+function checkLineIntersection( line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY ) {
+
+	let a, b;
+
+	const denominator = ( ( line2EndY - line2StartY ) * ( line1EndX - line1StartX ) ) - ( ( line2EndX - line2StartX ) * ( line1EndY - line1StartY ) );
+
+	if ( denominator === 0 ) {
+
+		return false;
+
+	}
+
+	a = line1StartY - line2StartY;
+	b = line1StartX - line2StartX;
+	const numerator1 = ( ( line2EndX - line2StartX ) * a ) - ( ( line2EndY - line2StartY ) * b );
+	const numerator2 = ( ( line1EndX - line1StartX ) * a ) - ( ( line1EndY - line1StartY ) * b );
+	a = numerator1 / denominator;
+	b = numerator2 / denominator;
+
+	if ( ( a > 0 && a < 1 ) && ( b > 0 && b < 1 ) ) {
+
+		return true;
+
+	}
+
+	return false;
 
 }
 

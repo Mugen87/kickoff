@@ -72,7 +72,7 @@ class PrepareForKickOffState extends State {
 
 		if ( team.areAllPlayersAtHome() && team.opposingTeam.areAllPlayersAtHome() ) {
 
-			team.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+			team.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 		}
 

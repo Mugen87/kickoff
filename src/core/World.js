@@ -204,7 +204,6 @@ class World {
 		this.entityManager.add( goalBlue );
 
 		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height );
-		pitch.isPlaying = true;
 		this.entityManager.add( pitch );
 
 		const ball = this._createBall( pitch );
@@ -218,6 +217,10 @@ class World {
 
 		teamRed.opposingTeam = teamBlue;
 		teamBlue.opposingTeam = teamRed;
+
+		pitch.ball = ball;
+		pitch.teamBlue = teamBlue;
+		pitch.teamRed = teamRed;
 
 		// temp
 
