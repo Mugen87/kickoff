@@ -58621,7 +58621,7 @@
 		PASS_TO_ME: 'PASS_TO_ME',
 		RECEIVE_BALL: 'RECEIVE_BALL',
 		SUPPORT_ATTACKER: 'SUPPORT_ATTACKER',
-		GOAL: 'GOAL'
+		GOAL_SCORED: 'GOAL_SCORED'
 	};
 	const GOALKEEPER_STATES = {
 		RETURN_HOME: 'RETURN_HOME',
@@ -58862,22 +58862,31 @@
 			if ( goalRed.leftPost === null ) goalRed.computePosts();
 			if ( goalBlue.leftPost === null ) goalBlue.computePosts();
 
+			let team = null;
+
 			if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalRed.leftPost.x, goalRed.leftPost.z, goalRed.rightPost.x, goalRed.rightPost.z ) ) {
 
-				teamBlue.goals ++;
-				this.sendMessage( this.pitch, MESSAGE.GOAL );
-				return true;
+				team = TEAM.BLUE;
 
 			}
 
 			if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalBlue.leftPost.x, goalBlue.leftPost.z, goalBlue.rightPost.x, goalBlue.rightPost.z ) ) {
 
-				teamRed.goals ++;
-				this.sendMessage( this.pitch, MESSAGE.GOAL );
-				return true;
+				team = TEAM.RED;
 
 			}
 
+			if ( team !== null ) {
+
+				this.placeAt( new Vector3$1( 0, 0, 0 ) );
+
+				this.sendMessage( teamBlue, MESSAGE.GOAL_SCORED, 0, { team: team } );
+				this.sendMessage( teamRed, MESSAGE.GOAL_SCORED, 0, { team: team } );
+				this.sendMessage( this.pitch, MESSAGE.GOAL_SCORED );
+
+				return true;
+
+			}
 
 			return false;
 
@@ -59077,14 +59086,9 @@
 
 			switch ( telegram.message ) {
 
-				case MESSAGE.GOAL:
+				case MESSAGE.GOAL_SCORED:
 
 					this.isPlaying = false;
-
-					this.ball.placeAt( new Vector3$1( 0, 0, 0 ) );
-
-					this.teamBlue.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
-					this.teamRed.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
 
 					this.world.refreshUI();
 
@@ -59296,6 +59300,28 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 */
 
+	class GlobalState extends State {
+
+		onMessage( team, telegram ) {
+
+			switch ( telegram.message ) {
+
+				case MESSAGE.GOAL_SCORED:
+
+					if ( telegram.data.team === team.color ) team.goals ++;
+
+					team.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+					return true;
+
+			}
+
+			return false;
+
+		}
+
+	}
+
 	class AttackingState extends State {
 
 		enter( team ) {
@@ -59388,7 +59414,7 @@
 	const _rotation = new Quaternion$1();
 	const _toBall = new Vector3$1();
 
-	class GlobalState extends State {
+	class GlobalState$1 extends State {
 
 		execute( player ) {
 
@@ -60261,7 +60287,7 @@
 
 			//
 
-			this.stateMachine.globalState = new GlobalState();
+			this.stateMachine.globalState = new GlobalState$1();
 
 			this.stateMachine.add( FIELDPLAYER_STATES.CHASE_BALL, new ChaseBallState() );
 			this.stateMachine.add( FIELDPLAYER_STATES.DRIBBLE, new DribbleState() );
@@ -60302,7 +60328,7 @@
 	const _target$2 = new Vector3$1();
 	const _displacement$1 = new Vector3$1();
 
-	class GlobalState$1 extends State {
+	class GlobalState$2 extends State {
 
 		onMessage( goalkeeper, telegram ) {
 
@@ -60541,7 +60567,7 @@
 
 			//
 
-			this.stateMachine.globalState = new GlobalState$1();
+			this.stateMachine.globalState = new GlobalState$2();
 
 			this.stateMachine.add( GOALKEEPER_STATES.RETURN_HOME, new ReturnHomeState$1() );
 			this.stateMachine.add( GOALKEEPER_STATES.TEND_GOAL, new TendGoalState() );
@@ -60649,6 +60675,8 @@
 
 			this.stateMachine = new StateMachine( this );
 
+			this.stateMachine.globalState = new GlobalState();
+
 			this.stateMachine.add( TEAM_STATES.ATTACKING, new AttackingState() );
 			this.stateMachine.add( TEAM_STATES.DEFENDING, new DefendingState() );
 			this.stateMachine.add( TEAM_STATES.PREPARE_FOR_KICKOFF, new PrepareForKickOffState() );
@@ -60658,6 +60686,12 @@
 			this._supportSpotCalculator = new SupportSpotCalculator( this );
 
 			this._createPlayers();
+
+		}
+
+		handleMessage( telegram ) {
+
+			return this.stateMachine.handleMessage( telegram );
 
 		}
 

@@ -5,7 +5,7 @@
 import { GameEntity, MathUtils, Matrix4, Quaternion, StateMachine, Vector3 } from 'yuka';
 import { MESSAGE, TEAM, ROLE, CONFIG, FIELDPLAYER_STATES, TEAM_STATES } from '../core/Constants.js';
 import SupportSpotCalculator from '../etc/SupportSpotCalculator.js';
-import { AttackingState, DefendingState, PrepareForKickOffState } from '../states/TeamStates.js';
+import { AttackingState, DefendingState, GlobalState, PrepareForKickOffState } from '../states/TeamStates.js';
 import FieldPlayer from './FieldPlayer.js';
 import Goalkeeper from './Goalkeeper.js';
 
@@ -51,6 +51,8 @@ class Team extends GameEntity {
 
 		this.stateMachine = new StateMachine( this );
 
+		this.stateMachine.globalState = new GlobalState();
+
 		this.stateMachine.add( TEAM_STATES.ATTACKING, new AttackingState() );
 		this.stateMachine.add( TEAM_STATES.DEFENDING, new DefendingState() );
 		this.stateMachine.add( TEAM_STATES.PREPARE_FOR_KICKOFF, new PrepareForKickOffState() );
@@ -60,6 +62,12 @@ class Team extends GameEntity {
 		this._supportSpotCalculator = new SupportSpotCalculator( this );
 
 		this._createPlayers();
+
+	}
+
+	handleMessage( telegram ) {
+
+		return this.stateMachine.handleMessage( telegram );
 
 	}
 

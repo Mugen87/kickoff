@@ -3,7 +3,29 @@
  */
 
 import { State } from 'yuka';
-import { TEAM_STATES } from '../core/Constants.js';
+import { MESSAGE, TEAM_STATES } from '../core/Constants.js';
+
+class GlobalState extends State {
+
+	onMessage( team, telegram ) {
+
+		switch ( telegram.message ) {
+
+			case MESSAGE.GOAL_SCORED:
+
+				if ( telegram.data.team === team.color ) team.goals ++;
+
+				team.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
+
+				return true;
+
+		}
+
+		return false;
+
+	}
+
+}
 
 class AttackingState extends State {
 
@@ -86,4 +108,4 @@ class PrepareForKickOffState extends State {
 
 }
 
-export { AttackingState, DefendingState, PrepareForKickOffState };
+export { AttackingState, DefendingState, GlobalState, PrepareForKickOffState };

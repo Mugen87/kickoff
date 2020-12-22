@@ -3,7 +3,7 @@
  */
 
 import { GameEntity, Plane, Vector3 } from 'yuka';
-import { MESSAGE, TEAM_STATES } from '../core/Constants.js';
+import { MESSAGE } from '../core/Constants.js';
 
 import Region from '../etc/Region.js';
 
@@ -43,14 +43,9 @@ class Pitch extends GameEntity {
 
 		switch ( telegram.message ) {
 
-			case MESSAGE.GOAL:
+			case MESSAGE.GOAL_SCORED:
 
 				this.isPlaying = false;
-
-				this.ball.placeAt( new Vector3( 0, 0, 0 ) );
-
-				this.teamBlue.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
-				this.teamRed.stateMachine.changeTo( TEAM_STATES.PREPARE_FOR_KICKOFF );
 
 				this.world.refreshUI();
 

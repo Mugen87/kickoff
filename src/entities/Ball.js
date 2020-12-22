@@ -3,7 +3,7 @@
  */
 
 import { MovingEntity, Ray, Vector3 } from 'yuka';
-import { MESSAGE } from '../core/Constants';
+import { MESSAGE, TEAM } from '../core/Constants';
 
 const _acceleration = new Vector3();
 const _brakingForce = new Vector3();
@@ -170,22 +170,31 @@ class Ball extends MovingEntity {
 		if ( goalRed.leftPost === null ) goalRed.computePosts();
 		if ( goalBlue.leftPost === null ) goalBlue.computePosts();
 
+		let team = null;
+
 		if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalRed.leftPost.x, goalRed.leftPost.z, goalRed.rightPost.x, goalRed.rightPost.z ) ) {
 
-			teamBlue.goals ++;
-			this.sendMessage( this.pitch, MESSAGE.GOAL );
-			return true;
+			team = TEAM.BLUE;
 
 		}
 
 		if ( checkLineIntersection( this._previousPosition.x, this._previousPosition.z, this.position.x, this.position.z, goalBlue.leftPost.x, goalBlue.leftPost.z, goalBlue.rightPost.x, goalBlue.rightPost.z ) ) {
 
-			teamRed.goals ++;
-			this.sendMessage( this.pitch, MESSAGE.GOAL );
-			return true;
+			team = TEAM.RED;
 
 		}
 
+		if ( team !== null ) {
+
+			this.placeAt( new Vector3( 0, 0, 0 ) );
+
+			this.sendMessage( teamBlue, MESSAGE.GOAL_SCORED, 0, { team: team } );
+			this.sendMessage( teamRed, MESSAGE.GOAL_SCORED, 0, { team: team } );
+			this.sendMessage( this.pitch, MESSAGE.GOAL_SCORED );
+
+			return true;
+
+		}
 
 		return false;
 
