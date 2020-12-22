@@ -41,6 +41,7 @@ class SupportSpotCalculator {
 
 			const spot = spots[ i ];
 			spot.score = 0;
+			spot.best = false;
 
 			// 1.Test: Is it possible to make a safe pass from the ball's position to this position?
 
@@ -94,6 +95,8 @@ class SupportSpotCalculator {
 
 		if ( this._bestSupportSpot !== null ) {
 
+			this._bestSupportSpot.best = true;
+
 			return this._bestSupportSpot.position;
 
 		}
@@ -138,14 +141,16 @@ class SupportSpotCalculator {
 
 					this._spots.push( {
 						position: new Vector3( left + ( x * sliceX ), 0, top - ( y * sliceY ) ),
-						score: 0
+						score: 0,
+						best: false
 					} );
 
 				} else {
 
 					this._spots.push( {
 						position: new Vector3( right - ( x * sliceX ), 0, top - ( y * sliceY ) ),
-						score: 0
+						score: 0,
+						best: false
 					} );
 
 				}

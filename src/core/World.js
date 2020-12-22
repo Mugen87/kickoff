@@ -113,6 +113,10 @@ class World {
 
 		this.entityManager.update( delta );
 
+		// update helpers
+
+		this._updateHelpers();
+
 		// rendering
 
 		this.renderer.render( this.scene, this.camera );
@@ -250,18 +254,18 @@ class World {
 		let supportSpotCalculator = redTeam._supportSpotCalculator;
 		let spots = supportSpotCalculator._spots;
 
-		const spotGeometry = new SphereBufferGeometry( 0.1 );
+		const spotGeometry = new SphereBufferGeometry( 0.1, 16, 12 );
 		spotGeometry.translate( 0, 0.1, 0 );
-		const spotMaterial = new MeshBasicMaterial( { color: 0xcccccc } );
 
 		for ( let i = 0, l = spots.length; i < l; i ++ ) {
 
 			const spot = spots[ i ];
 
+			const spotMaterial = new MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.6 } );
+
 			const helper = new Mesh( spotGeometry, spotMaterial );
 			helper.visible = false;
 			helper.position.copy( spot.position );
-			helper.scale.setScalar( spot.score || 0.5 );
 			this.scene.add( helper );
 
 			this._supportingSpotsRedHelpers.push( helper );
@@ -279,10 +283,11 @@ class World {
 
 			const spot = spots[ i ];
 
+			const spotMaterial = new MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.5 } );
+
 			const helper = new Mesh( spotGeometry, spotMaterial );
 			helper.visible = false;
 			helper.position.copy( spot.position );
-			helper.scale.setScalar( spot.score || 0.5 );
 			this.scene.add( helper );
 
 			this._supportingSpotsBlueHelpers.push( helper );
@@ -509,6 +514,47 @@ class World {
 		} );
 
 		folderTeamBlue.open();
+
+	}
+
+	_updateHelpers() {
+
+		// red team
+
+		let team = this.pitch.teamRed;
+		let helpers = this._supportingSpotsRedHelpers;
+
+		let supportSpotCalculator = team._supportSpotCalculator;
+		let spots = supportSpotCalculator._spots;
+
+		for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+			const spot = spots[ i ];
+			const helper = helpers[ i ];
+			helper.scale.setScalar( spot.score || 0.5 );
+
+			helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
+
+		}
+
+		// blue team
+
+		team = this.pitch.teamBlue;
+		helpers = this._supportingSpotsBlueHelpers;
+
+		supportSpotCalculator = team._supportSpotCalculator;
+		spots = supportSpotCalculator._spots;
+
+		for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+			const spot = spots[ i ];
+			const helper = helpers[ i ];
+			helper.scale.setScalar( spot.score || 0.5 );
+
+			helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
+
+		}
+
 
 	}
 

@@ -59170,6 +59170,7 @@
 
 				const spot = spots[ i ];
 				spot.score = 0;
+				spot.best = false;
 
 				// 1.Test: Is it possible to make a safe pass from the ball's position to this position?
 
@@ -59223,6 +59224,8 @@
 
 			if ( this._bestSupportSpot !== null ) {
 
+				this._bestSupportSpot.best = true;
+
 				return this._bestSupportSpot.position;
 
 			}
@@ -59267,14 +59270,16 @@
 
 						this._spots.push( {
 							position: new Vector3$1( left + ( x * sliceX ), 0, top - ( y * sliceY ) ),
-							score: 0
+							score: 0,
+							best: false
 						} );
 
 					} else {
 
 						this._spots.push( {
 							position: new Vector3$1( right - ( x * sliceX ), 0, top - ( y * sliceY ) ),
-							score: 0
+							score: 0,
+							best: false
 						} );
 
 					}
@@ -61304,6 +61309,10 @@
 
 			this.entityManager.update( delta );
 
+			// update helpers
+
+			this._updateHelpers();
+
 			// rendering
 
 			this.renderer.render( this.scene, this.camera );
@@ -61441,18 +61450,18 @@
 			let supportSpotCalculator = redTeam._supportSpotCalculator;
 			let spots = supportSpotCalculator._spots;
 
-			const spotGeometry = new SphereBufferGeometry( 0.1 );
+			const spotGeometry = new SphereBufferGeometry( 0.1, 16, 12 );
 			spotGeometry.translate( 0, 0.1, 0 );
-			const spotMaterial = new MeshBasicMaterial( { color: 0xcccccc } );
 
 			for ( let i = 0, l = spots.length; i < l; i ++ ) {
 
 				const spot = spots[ i ];
 
+				const spotMaterial = new MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.6 } );
+
 				const helper = new Mesh( spotGeometry, spotMaterial );
 				helper.visible = false;
 				helper.position.copy( spot.position );
-				helper.scale.setScalar( spot.score || 0.5 );
 				this.scene.add( helper );
 
 				this._supportingSpotsRedHelpers.push( helper );
@@ -61470,10 +61479,11 @@
 
 				const spot = spots[ i ];
 
+				const spotMaterial = new MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.5 } );
+
 				const helper = new Mesh( spotGeometry, spotMaterial );
 				helper.visible = false;
 				helper.position.copy( spot.position );
-				helper.scale.setScalar( spot.score || 0.5 );
 				this.scene.add( helper );
 
 				this._supportingSpotsBlueHelpers.push( helper );
@@ -61700,6 +61710,47 @@
 			} );
 
 			folderTeamBlue.open();
+
+		}
+
+		_updateHelpers() {
+
+			// red team
+
+			let team = this.pitch.teamRed;
+			let helpers = this._supportingSpotsRedHelpers;
+
+			let supportSpotCalculator = team._supportSpotCalculator;
+			let spots = supportSpotCalculator._spots;
+
+			for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+				const spot = spots[ i ];
+				const helper = helpers[ i ];
+				helper.scale.setScalar( spot.score || 0.5 );
+
+				helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
+
+			}
+
+			// blue team
+
+			team = this.pitch.teamBlue;
+			helpers = this._supportingSpotsBlueHelpers;
+
+			supportSpotCalculator = team._supportSpotCalculator;
+			spots = supportSpotCalculator._spots;
+
+			for ( let i = 0, l = spots.length; i < l; i ++ ) {
+
+				const spot = spots[ i ];
+				const helper = helpers[ i ];
+				helper.scale.setScalar( spot.score || 0.5 );
+
+				helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
+
+			}
+
 
 		}
 
