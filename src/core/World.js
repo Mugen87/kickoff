@@ -378,7 +378,9 @@ class World {
 
 		const pitchGeometry = new PlaneBufferGeometry( this.pitchDimension.width, this.pitchDimension.height );
 		pitchGeometry.rotateX( Math.PI * - 0.5 );
-		const pitchMaterial = new MeshPhongMaterial( { color: 0x00ff00 } );
+
+		const pitchTexture = this.assetManager.textures.get( 'pitchTexture' );
+		const pitchMaterial = new MeshPhongMaterial( { map: pitchTexture } );
 
 		this.pitchMesh = new Mesh( pitchGeometry, pitchMaterial );
 		this.pitchMesh.receiveShadow = true;
