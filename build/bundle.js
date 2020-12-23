@@ -61289,8 +61289,10 @@
 				'showAxes': false,
 				'showWalls': false,
 				'showRegions': false,
+				'showSupportSpotsBlue': false,
 				'showSupportSpotsRed': false,
-				'showSupportSpotsBlue': false
+				'showStatesBlue': false,
+				'showStatesRed': false
 			};
 
 			this._axesHelper = null;
@@ -61298,6 +61300,8 @@
 			this._wallHelpers = [];
 			this._supportingSpotsRedHelpers = [];
 			this._supportingSpotsBlueHelpers = [];
+			this._statesRedHelpers = [];
+			this._statesBlueHelpers = [];
 
 			//
 
@@ -61345,7 +61349,8 @@
 
 			// update helpers
 
-			this._updateHelpers();
+			this._updateTeamHelpers( this.pitch.teamBlue, this._supportingSpotsBlueHelpers, this._statesBlueHelpers );
+			this._updateTeamHelpers( this.pitch.teamRed, this._supportingSpotsRedHelpers, this._statesRedHelpers );
 
 			// rendering
 
@@ -61475,14 +61480,11 @@
 
 		}
 
-		_debugTeams() {
+		_debugTeam( team, supportSpotsHelpers, statesHelpers ) {
 
-			// red
+			// support spots
 
-			const redTeam = this.pitch.teamRed;
-
-			let supportSpotCalculator = redTeam._supportSpotCalculator;
-			let spots = supportSpotCalculator._spots;
+			const spots = team._supportSpotCalculator._spots;
 
 			const spotGeometry = new SphereBufferGeometry( 0.1, 16, 12 );
 			spotGeometry.translate( 0, 0.1, 0 );
@@ -61498,29 +61500,44 @@
 				helper.position.copy( spot.position );
 				this.scene.add( helper );
 
-				this._supportingSpotsRedHelpers.push( helper );
+				supportSpotsHelpers.push( helper );
 
 			}
 
-			// blue
+			// states
 
-			const teamBlue = this.pitch.teamBlue;
+			const players = team.children;
 
-			supportSpotCalculator = teamBlue._supportSpotCalculator;
-			spots = supportSpotCalculator._spots;
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
 
-			for ( let i = 0, l = spots.length; i < l; i ++ ) {
+				const player = players[ i ];
 
-				const spot = spots[ i ];
+				const canvas = document.createElement( 'canvas' );
+				const context = canvas.getContext( '2d' );
 
-				const spotMaterial = new MeshBasicMaterial( { color: 0xffffff, transparent: true, opacity: 0.5 } );
+				canvas.width = 256;
+				canvas.height = 64;
 
-				const helper = new Mesh( spotGeometry, spotMaterial );
+				context.fillStyle = '#ffffff';
+				context.fillRect( 0, 0, canvas.width, canvas.height );
+
+				context.fillStyle = "#000000";
+				context.font = '24px Arial';
+				context.textAlign = 'center';
+				context.textBaseline = 'middle';
+
+				context.fillText( 'null', canvas.width / 2, canvas.height / 2 );
+
+				const material = new SpriteMaterial( { map: new CanvasTexture( canvas ) } );
+
+				const helper = new Sprite( material );
 				helper.visible = false;
-				helper.position.copy( spot.position );
-				this.scene.add( helper );
+				helper.scale.set( 2, 0.5, 1 );
+				helper.position.y = 2;
 
-				this._supportingSpotsBlueHelpers.push( helper );
+				player._renderComponent.add( helper );
+
+				statesHelpers.push( helper );
 
 			}
 
@@ -61668,7 +61685,8 @@
 			// prepare visual helpers
 
 			this._debugPitch();
-			this._debugTeams();
+			this._debugTeam( this.pitch.teamBlue, this._supportingSpotsBlueHelpers, this._statesBlueHelpers );
+			this._debugTeam( this.pitch.teamRed, this._supportingSpotsRedHelpers, this._statesRedHelpers );
 
 			// setup UI
 
@@ -61713,6 +61731,18 @@
 
 			const folderTeamRed = gui.addFolder( 'Team Red' );
 
+			folderTeamRed.add( params, 'showStatesRed' ).name( 'show states' ).onChange( ( value ) => {
+
+				const helpers = this._statesRedHelpers;
+
+				for ( let i = 0, l = helpers.length; i < l; i ++ ) {
+
+					helpers[ i ].visible = value;
+
+				}
+
+			} );
+
 			folderTeamRed.add( params, 'showSupportSpotsRed' ).name( 'show support spots' ).onChange( ( value ) => {
 
 				const helpers = this._supportingSpotsRedHelpers;
@@ -61731,6 +61761,18 @@
 
 			const folderTeamBlue = gui.addFolder( 'Team Blue' );
 
+			folderTeamBlue.add( params, 'showStatesBlue' ).name( 'show states' ).onChange( ( value ) => {
+
+				const helpers = this._statesBlueHelpers;
+
+				for ( let i = 0, l = helpers.length; i < l; i ++ ) {
+
+					helpers[ i ].visible = value;
+
+				}
+
+			} );
+
 			folderTeamBlue.add( params, 'showSupportSpotsBlue' ).name( 'show support spots' ).onChange( ( value ) => {
 
 				const helpers = this._supportingSpotsBlueHelpers;
@@ -61747,44 +61789,58 @@
 
 		}
 
-		_updateHelpers() {
+		_updateTeamHelpers( team, supportSpotsHelpers, statesHelpers ) {
 
-			// red team
+			// support spots
 
-			let team = this.pitch.teamRed;
-			let helpers = this._supportingSpotsRedHelpers;
-
-			let supportSpotCalculator = team._supportSpotCalculator;
-			let spots = supportSpotCalculator._spots;
+			const spots = team._supportSpotCalculator._spots;
 
 			for ( let i = 0, l = spots.length; i < l; i ++ ) {
 
 				const spot = spots[ i ];
-				const helper = helpers[ i ];
-				helper.scale.setScalar( spot.score || 0.5 );
+				const helper = supportSpotsHelpers[ i ];
 
-				helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
+				if ( helper.visible === true ) {
 
-			}
+					helper.scale.setScalar( spot.score || 0.5 );
+					helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
 
-			// blue team
-
-			team = this.pitch.teamBlue;
-			helpers = this._supportingSpotsBlueHelpers;
-
-			supportSpotCalculator = team._supportSpotCalculator;
-			spots = supportSpotCalculator._spots;
-
-			for ( let i = 0, l = spots.length; i < l; i ++ ) {
-
-				const spot = spots[ i ];
-				const helper = helpers[ i ];
-				helper.scale.setScalar( spot.score || 0.5 );
-
-				helper.material.color.set( ( spot.best === true ) ? 0xff0000 : 0xffffff );
+				}
 
 			}
 
+			// states
+
+			const players = team.children;
+
+			for ( let i = 0, l = players.length; i < l; i ++ ) {
+
+				const player = players[ i ];
+				const helper = statesHelpers[ i ];
+
+				if ( helper.visible === true ) {
+
+					const currentState = player.stateMachine.currentState;
+					const text = ( currentState !== null ) ? currentState.constructor.name : 'null';
+
+					const canvas = helper.material.map.image;
+					const context = canvas.getContext( '2d' );
+
+					context.fillStyle = '#ffffff';
+					context.fillRect( 0, 0, canvas.width, canvas.height );
+
+					context.fillStyle = "#000000";
+					context.font = '24px Arial';
+					context.textAlign = 'center';
+					context.textBaseline = 'middle';
+
+					context.fillText( text, canvas.width / 2, canvas.height / 2 );
+
+					helper.material.map.needsUpdate = true;
+
+				}
+
+			}
 
 		}
 
