@@ -10,7 +10,7 @@
 body {
 	margin:0;
 	font-family: 'Jura', sans-serif;
-	color: white;
+	color: #ffffff;
 }
 
 #score {
@@ -20,12 +20,13 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	background-color: #000000;
 }
 
 #score .blue {
 	width: 32px;
 	height: 32px;
-	background-color: blue;
+	background-color: #0000ff;
 }
 
 #score .item {
@@ -36,5 +37,5 @@ body {
 #score .red {
 	width: 32px;
 	height: 32px;
-	background-color: red;
+	background-color: #ff0000;
 }

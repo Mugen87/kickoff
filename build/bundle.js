@@ -25165,6 +25165,40 @@
 
 	} );
 
+	class Fog {
+
+		constructor( color, near, far ) {
+
+			Object.defineProperty( this, 'isFog', { value: true } );
+
+			this.name = '';
+
+			this.color = new Color( color );
+
+			this.near = ( near !== undefined ) ? near : 1;
+			this.far = ( far !== undefined ) ? far : 1000;
+
+		}
+
+		clone() {
+
+			return new Fog( this.color, this.near, this.far );
+
+		}
+
+		toJSON( /* meta */ ) {
+
+			return {
+				type: 'Fog',
+				color: this.color.getHex(),
+				near: this.near,
+				far: this.far
+			};
+
+		}
+
+	}
+
 	class Scene extends Object3D {
 
 		constructor() {
@@ -61576,6 +61610,8 @@
 			this.camera.position.set( 0, 10, 20 );
 
 			this.scene = new Scene();
+			this.scene.background = new Color( 0x94dbe2 );
+			this.scene.fog = new Fog( 0x94dbe2, 40, 50 );
 			this.camera.lookAt( this.scene.position );
 
 			const ambientLight = new AmbientLight( 0xcccccc, 0.4 );
@@ -61606,6 +61642,15 @@
 			document.body.appendChild( this.renderer.domElement );
 
 			window.addEventListener( 'resize', this._onWindowResize, false );
+
+			// ground
+
+			const groundGeometry = new PlaneBufferGeometry( 75, 75 );
+			groundGeometry.rotateX( Math.PI * - 0.5 );
+			const groundMaterial = new MeshBasicMaterial( { color: new Color( 0xdb8d6e ).convertSRGBToLinear(), depthWrite: false } );
+			const groundMesh = new Mesh( groundGeometry, groundMaterial );
+			groundMesh.matrixAutoUpdate = false;
+			this.scene.add( groundMesh );
 
 			// render components
 

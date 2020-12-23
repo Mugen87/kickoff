@@ -2,7 +2,7 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, Sprite, SpriteMaterial } from 'three';
+import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, Sprite, SpriteMaterial, Color, Fog } from 'three';
 import { EntityManager, Time } from 'yuka';
 import * as DAT from 'dat.gui';
 
@@ -331,6 +331,8 @@ class World {
 		this.camera.position.set( 0, 10, 20 );
 
 		this.scene = new Scene();
+		this.scene.background = new Color( 0x94dbe2 );
+		this.scene.fog = new Fog( 0x94dbe2, 40, 50 );
 		this.camera.lookAt( this.scene.position );
 
 		const ambientLight = new AmbientLight( 0xcccccc, 0.4 );
@@ -361,6 +363,15 @@ class World {
 		document.body.appendChild( this.renderer.domElement );
 
 		window.addEventListener( 'resize', this._onWindowResize, false );
+
+		// ground
+
+		const groundGeometry = new PlaneBufferGeometry( 75, 75 );
+		groundGeometry.rotateX( Math.PI * - 0.5 );
+		const groundMaterial = new MeshBasicMaterial( { color: new Color( 0xdb8d6e ).convertSRGBToLinear(), depthWrite: false } );
+		const groundMesh = new Mesh( groundGeometry, groundMaterial );
+		groundMesh.matrixAutoUpdate = false;
+		this.scene.add( groundMesh );
 
 		// render components
 
