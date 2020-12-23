@@ -61261,6 +61261,8 @@
 				goalsRed: document.getElementById( 'goals-red' )
 			};
 
+			this.debug = true;
+
 			//
 
 			this.pitch = null;
@@ -61323,7 +61325,11 @@
 
 			this._initGame();
 
-			this._initUI();
+			if ( this.debug ) {
+
+				this._initUI();
+
+			}
 
 			this._startAnimation();
 
@@ -61349,8 +61355,12 @@
 
 			// update helpers
 
-			this._updateTeamHelpers( this.pitch.teamBlue, this._supportingSpotsBlueHelpers, this._statesBlueHelpers );
-			this._updateTeamHelpers( this.pitch.teamRed, this._supportingSpotsRedHelpers, this._statesRedHelpers );
+			if ( this.debug ) {
+
+				this._updateTeamHelpers( this.pitch.teamBlue, this._supportingSpotsBlueHelpers, this._statesBlueHelpers );
+				this._updateTeamHelpers( this.pitch.teamRed, this._supportingSpotsRedHelpers, this._statesRedHelpers );
+
+			}
 
 			// rendering
 
