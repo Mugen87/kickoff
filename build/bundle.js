@@ -59794,18 +59794,18 @@
 			// player is in the opponents "hot region" (the third of the pitch closest
 			// to the opponent's goal)
 
-			if ( ( player.inHotRegion() || Math.random() < CONFIG.PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR ) &&
+			if ( ( player.inHotRegion() || Math.random() > CONFIG.PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR ) &&
 				player.team.isOpponentWithinRadius( player, CONFIG.PLAYER_PASS_THREAD_RADIUS ) ) {
-
-				const arriveBehavior = player.steering.behaviors[ 1 ];
-				arriveBehavior.target = player.steeringTarget;
-				arriveBehavior.active = true;
-
-			} else {
 
 				const pursuitBehavior = player.steering.behaviors[ 2 ];
 				pursuitBehavior.evader = team.ball;
 				pursuitBehavior.active = true;
+
+			} else {
+
+				const arriveBehavior = player.steering.behaviors[ 1 ];
+				arriveBehavior.target = player.steeringTarget;
+				arriveBehavior.active = true;
 
 			}
 
