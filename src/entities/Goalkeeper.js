@@ -18,6 +18,7 @@ class Goalkeeper extends Player {
 		//
 
 		const arriveBehavior = new ArriveBehavior();
+		arriveBehavior.deceleration = 1.5;
 		arriveBehavior.active = false;
 		this.steering.add( arriveBehavior );
 

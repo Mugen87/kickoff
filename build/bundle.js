@@ -58711,7 +58711,7 @@
 		PLAYER_MAX_SPEED_WITHOUT_BALL: 1, // max speed without ball
 		PLAYER_MIN_PASS_DISTANCE: 5, // the minimum distance a receiving player must be from the passing player
 		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
-		PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
+		PLAYER_RECEIVING_RANGE: 1, // how close the ball must be to a receiver before he starts chasing it
 		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
 		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
 		PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
@@ -60607,6 +60607,7 @@
 			//
 
 			const arriveBehavior = new ArriveBehavior();
+			arriveBehavior.deceleration = 1.5;
 			arriveBehavior.active = false;
 			this.steering.add( arriveBehavior );
 
