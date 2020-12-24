@@ -163,7 +163,7 @@ class DribbleState extends State {
 		// swivel the ball around by doing multiple small kicks and turns until
 		// the player is facing in the correct direction
 
-		if ( dot > 0 ) {
+		if ( dot < 0 ) {
 
 			// the player's heading is going to be rotated by a small amount
 			// (Pi/4) and then the ball will be kicked in that direction
@@ -372,12 +372,12 @@ class ReceiveBallState extends State {
 
 		}
 
-		// if "arrive" is active, it's necessary to update the target position
+		// if "pursuit" is active, it's necessary to update the target position
 
-		const arriveBehavior = player.steering.behaviors[ 1 ];
+		const pursuitBehavior = player.steering.behaviors[ 2 ];
 		const ball = player.team.ball;
 
-		if ( arriveBehavior.active ) {
+		if ( pursuitBehavior.active ) {
 
 			player.steeringTarget.copy( ball.position );
 

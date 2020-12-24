@@ -58711,7 +58711,7 @@
 		PLAYER_MAX_SPEED_WITHOUT_BALL: 1, // max speed without ball
 		PLAYER_MIN_PASS_DISTANCE: 5, // the minimum distance a receiving player must be from the passing player
 		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
-		PLAYER_RECEIVING_RANGE: 6, // how close the ball must be to a receiver before he starts chasing it
+		PLAYER_RECEIVING_RANGE: 0.5, // how close the ball must be to a receiver before he starts chasing it
 		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
 		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
 		PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
@@ -59614,7 +59614,7 @@
 			// swivel the ball around by doing multiple small kicks and turns until
 			// the player is facing in the correct direction
 
-			if ( dot > 0 ) {
+			if ( dot < 0 ) {
 
 				// the player's heading is going to be rotated by a small amount
 				// (Pi/4) and then the ball will be kicked in that direction
@@ -59823,12 +59823,12 @@
 
 			}
 
-			// if "arrive" is active, it's necessary to update the target position
+			// if "pursuit" is active, it's necessary to update the target position
 
-			const arriveBehavior = player.steering.behaviors[ 1 ];
+			const pursuitBehavior = player.steering.behaviors[ 2 ];
 			const ball = player.team.ball;
 
-			if ( arriveBehavior.active ) {
+			if ( pursuitBehavior.active ) {
 
 				player.steeringTarget.copy( ball.position );
 
