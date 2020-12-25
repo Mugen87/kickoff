@@ -36,6 +36,8 @@ class GlobalState extends State {
 
 				player.setDefaultHomeRegion();
 
+				player.steeringTarget.copy( player.getHomeRegion().center );
+
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.RETURN_HOME );
 
 				return true;
@@ -595,16 +597,29 @@ class SupportAttackerState extends State {
 
 class WaitState extends State {
 
-	enter( player ) {
-
-		player.velocity.set( 0, 0, 0 );
-
-	}
-
 	execute( player ) {
 
 		const team = player.team;
 		const pitch = player.pitch;
+
+		const arriveBehavior = player.steering.behaviors[ 1 ];
+
+		// if players are in this state and the team strategy changes, it is necessary
+		// that the player moves to an updated steering target.
+
+		if ( player.atTarget() === false ) {
+
+			arriveBehavior.target = player.steeringTarget;
+			arriveBehavior.active = true;
+
+		} else {
+
+			arriveBehavior.target = null;
+			arriveBehavior.active = false;
+
+			player.velocity.set( 0, 0, 0 );
+
+		}
 
 		if ( pitch.isPlaying ) {
 
@@ -623,13 +638,21 @@ class WaitState extends State {
 
 		// if this player's team is controlling AND this player is not the
 		// attacker AND is further up the field than the attacker AND if the controlling player
-		// is not he goalkeeper he should request a pass
+		// is not the goalkeeper he should request a pass
 
 		if ( team.inControl() && player.isControllingPlayer() === false && player.isAheadOfAttacker() && team.controllingPlayer.role !== ROLE.GOALKEEPER ) {
 
 			team.requestPass( player );
 
 		}
+
+	}
+
+	exit( player ) {
+
+		const arriveBehavior = player.steering.behaviors[ 1 ];
+		arriveBehavior.target = null;
+		arriveBehavior.active = false;
 
 	}
 

@@ -56,7 +56,7 @@ class Ball extends MovingEntity {
 		// internals
 
 		/**
-		* Represents the previous position of the ball in a single frame.
+		* Represents the previous position of the ball in a simulation step.
 		* @type Vector3
 		*/
 		this._previousPosition = new Vector3();

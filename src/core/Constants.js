@@ -46,7 +46,7 @@ export const CONFIG = {
 	PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
 	PLAYER_RECEIVING_RANGE: 1, // how close the ball must be to a receiver before he starts chasing it
 	PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
-	PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
+	PLAYER_PASS_REQUEST_SUCCESS: 0.1, // the likelihood that a pass request is successful
 	PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
 	SUPPORT_SPOT_CALCULATOR_SLICE_X: 12, // x dimension of spot
 	SUPPORT_SPOT_CALCULATOR_SLICE_Y: 5, // y dimension of spot

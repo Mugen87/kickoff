@@ -58732,7 +58732,7 @@
 		PLAYER_NUM_ATTEMPTS_TO_FIND_VALID_STRIKE: 5, // the number of times the player attempts to find a valid shot
 		PLAYER_RECEIVING_RANGE: 1, // how close the ball must be to a receiver before he starts chasing it
 		PLAYER_PASS_INTERCEPT_SCALE: 0.3, // this value decreases the range of possible pass targets a player can reach "in time"
-		PLAYER_PASS_REQUEST_FAILURE: 0.1, // the likelihood that a pass request won't be noticed
+		PLAYER_PASS_REQUEST_SUCCESS: 0.1, // the likelihood that a pass request is successful
 		PLAYER_PASS_THREAD_RADIUS: 3, // the radius in which a pass in dangerous
 		SUPPORT_SPOT_CALCULATOR_SLICE_X: 12, // x dimension of spot
 		SUPPORT_SPOT_CALCULATOR_SLICE_Y: 5, // y dimension of spot
@@ -58816,7 +58816,7 @@
 			// internals
 
 			/**
-			* Represents the previous position of the ball in a single frame.
+			* Represents the previous position of the ball in a simulation step.
 			* @type Vector3
 			*/
 			this._previousPosition = new Vector3$1();
@@ -59796,6 +59796,8 @@
 
 					player.setDefaultHomeRegion();
 
+					player.steeringTarget.copy( player.getHomeRegion().center );
+
 					player.stateMachine.changeTo( FIELDPLAYER_STATES.RETURN_HOME );
 
 					return true;
@@ -60355,16 +60357,29 @@
 
 	class WaitState extends State {
 
-		enter( player ) {
-
-			player.velocity.set( 0, 0, 0 );
-
-		}
-
 		execute( player ) {
 
 			const team = player.team;
 			const pitch = player.pitch;
+
+			const arriveBehavior = player.steering.behaviors[ 1 ];
+
+			// if players are in this state and the team strategy changes, it is necessary
+			// that the player moves to an updated steering target.
+
+			if ( player.atTarget() === false ) {
+
+				arriveBehavior.target = player.steeringTarget;
+				arriveBehavior.active = true;
+
+			} else {
+
+				arriveBehavior.target = null;
+				arriveBehavior.active = false;
+
+				player.velocity.set( 0, 0, 0 );
+
+			}
 
 			if ( pitch.isPlaying ) {
 
@@ -60383,13 +60398,21 @@
 
 			// if this player's team is controlling AND this player is not the
 			// attacker AND is further up the field than the attacker AND if the controlling player
-			// is not he goalkeeper he should request a pass
+			// is not the goalkeeper he should request a pass
 
 			if ( team.inControl() && player.isControllingPlayer() === false && player.isAheadOfAttacker() && team.controllingPlayer.role !== ROLE.GOALKEEPER ) {
 
 				team.requestPass( player );
 
 			}
+
+		}
+
+		exit( player ) {
+
+			const arriveBehavior = player.steering.behaviors[ 1 ];
+			arriveBehavior.target = null;
+			arriveBehavior.active = false;
 
 		}
 
@@ -60497,6 +60520,7 @@
 			//
 
 			this.position.copy( pitch.getRegionById( defaultRegionId ).center );
+			this.steeringTarget.copy( this.position );
 
 		}
 
@@ -61208,10 +61232,6 @@
 
 	}
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _localPositionOfOpponent = new Vector3$1();
 	const _startPosition = new Vector3$1();
 	const _endPosition = new Vector3$1();
@@ -61231,28 +61251,115 @@
 	const _forward = new Vector3$1( 0, 0, 1 );
 	const _up = new Vector3$1( 0, 1, 0 );
 
+	// these define the home regions for this state of each of the players
+
+	const _blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
+	const _blueAttackingRegions = [ 1, 12, 14, 4, 8 ];
+
+	const _redDefendingRegions = [ 16, 9, 11, 12, 14 ];
+	const _redAttackingRegions = [ 16, 3, 5, 10, 11 ];
+
+	/**
+	* Class for representing a soccer team.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments GameEntity
+	*/
 	class Team extends GameEntity {
 
+		/**
+		* Constructs a new team.
+		*
+		* @param {Number} color - The color of the team.
+		* @param {Ball} ball - A reference to the ball.
+		* @param {Pitch} pitch - A reference to the pitch.
+		* @param {Goal} homeGoal - A reference to the own goal.
+		* @param {Goal} opposingGoal - A reference to the opposing goal.
+		*/
 		constructor( color, ball, pitch, homeGoal, opposingGoal ) {
 
 			super();
 
-			this.color = color;
+			/**
+			* A reference to the ball.
+			* @type Ball
+			*/
 			this.ball = ball;
-			this.pitch = pitch;
-			this.homeGoal = homeGoal;
 
+			/**
+			* The color of the team.
+			* @type Number
+			*/
+			this.color = color;
+
+			/**
+			* The player who is currently controlling the ball. Can be null.
+			* @type Player
+			*/
+			this.controllingPlayer = null;
+
+			/**
+			* The number of goals this team has scored so far.
+			* @type Number
+			*/
 			this.goals = 0;
 
+			/**
+			* A reference to the own goal.
+			* @type Goal
+			*/
+			this.homeGoal = homeGoal;
+
+			/**
+			* A reference to the opposing goal.
+			* @type Goal
+			*/
 			this.opposingGoal = opposingGoal;
+
+			/**
+			* A reference to the opposing team. Set by the World class.
+			* @type Team
+			*/
 			this.opposingTeam = null;
 
-			this.receivingPlayer = null;
+			/**
+			* A reference to the player which is closest to the ball.
+			* This player is determined per simulation step.
+			* @type Player
+			*/
 			this.playerClosestToBall = null;
-			this.controllingPlayer = null;
+
+			/**
+			* A reference to the pitch.
+			* @type Pitch
+			*/
+			this.pitch = pitch;
+
+			/**
+			* A reference to the player waiting to receive the ball from a team mate. Can be null.
+			* @type Player
+			*/
+			this.receivingPlayer = null;
+
+			/**
+			* The state machine of the team.
+			* @type StateMachine
+			*/
+			this.stateMachine = new StateMachine( this );
+
+			/**
+			* A reference to the player who is supporting the controlling player in an attack. Can be null.
+			* @type Player
+			*/
 			this.supportingPlayer = null;
 
-			this.stateMachine = new StateMachine( this );
+			/**
+			* The team's support spot calculator.
+			* @type SupportSpotCalculator
+			*/
+			this._supportSpotCalculator = new SupportSpotCalculator( this );
+
+			// states
 
 			this.stateMachine.globalState = new GlobalState();
 
@@ -61262,26 +61369,45 @@
 
 			this.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
-			this._supportSpotCalculator = new SupportSpotCalculator( this );
+			//
 
 			this._createPlayers();
 
 		}
 
+		/**
+		* Updates the team.
+		*
+		* @param {Number} delta - The time delta value.
+		* @return {FieldPlayer} A reference to this team.
+		*/
+		update( /*delta */ ) {
+
+			this._computePlayerClosestToBall();
+
+			this.stateMachine.update();
+
+			return this;
+
+		}
+
+		/**
+		* Holds the implementation for the message handling of this team.
+		*
+		* @param {Telegram} telegram - The telegram with the message data.
+		* @return {Boolean} Whether the message was processed or not.
+		*/
 		handleMessage( telegram ) {
 
 			return this.stateMachine.handleMessage( telegram );
 
 		}
 
-		update() {
-
-			this._computePlayerClosestToBall();
-
-			this.stateMachine.update();
-
-		}
-
+		/**
+		* Returns true if all players are in their home region.
+		*
+		* @return {Boolean} Whether all players are in their home region or not.
+		*/
 		areAllPlayersAtHome() {
 
 			for ( let i = 0, l = this.children.length; i < l; i ++ ) {
@@ -61333,6 +61459,11 @@
 
 		}
 
+		/**
+		* Computes and returns the best supporting attacker. If no player is determined, null is returned.
+		*
+		* @return {Player} The best supporting attacker.
+		*/
 		computeBestSupportingAttacker() {
 
 			let minDistance = Infinity;
@@ -61364,6 +61495,9 @@
 
 		}
 
+		/**
+		* Computes the best supporting position.
+		*/
 		computeBestSupportingPosition() {
 
 			this._supportSpotCalculator.computeBestSupportingPosition();
@@ -61448,18 +61582,35 @@
 
 		}
 
+		/**
+		* Returns the best supporting position for the supporting player.
+		*
+		* @return {Vector3} The best supporting position for the supporting player.
+		*/
 		getSupportPosition() {
 
 			return this._supportSpotCalculator.getBestSupportingPosition();
 
 		}
 
+		/**
+		* Returns true if the team is in control of the ball.
+		*
+		* @return {Boolean} Whether the team is in control of the ball or not.
+		*/
 		inControl() {
 
 			return this.controllingPlayer !== null;
 
 		}
 
+		/**
+		* Returns true if an opponent is within the given radius.
+		*
+		* @param {Player} player - The time delta value.
+		* @param {Number} radius - The radius.
+		* @return {Boolean} Whether an opponent is within the given radius or not.
+		*/
 		isOpponentWithinRadius( player, radius ) {
 
 			const opponents = this.opposingTeam.children;
@@ -61505,6 +61656,9 @@
 
 		}
 
+		/**
+		* Called then the team loses the control over the ball.
+		*/
 		lostControl() {
 
 			this.controllingPlayer = null;
@@ -61513,9 +61667,19 @@
 
 		}
 
+		/**
+		* This method tests to see if a pass is possible between the requester and the controlling player.
+		* If it is possible a message is sent to the controlling player to pass the ball.
+		*
+		* @param {Player} requester - The player who requests the pass.
+		*/
 		requestPass( requester ) {
 
-			if ( Math.random() > CONFIG.PLAYER_PASS_REQUEST_FAILURE ) return;
+			// let the request fail sometimes
+
+			if ( Math.random() > CONFIG.PLAYER_PASS_REQUEST_SUCCESS ) return;
+
+			// check the safety of the pass
 
 			if ( this.inControl() && this.isPassSafeFromAllOpponents( this.controllingPlayer.position, requester.position, requester, CONFIG.PLAYER_MAX_PASSING_FORCE ) ) {
 
@@ -61525,6 +61689,11 @@
 
 		}
 
+		/**
+		* This method sends all players of the team to their home region.
+		*
+		* @param {Boolean} withGoalKeeper - Whether the goal keep should return home or not.
+		*/
 		returnAllFieldPlayersToHome( withGoalKeeper = false ) {
 
 			const players = this.children;
@@ -61551,6 +61720,12 @@
 
 		}
 
+		/**
+		* Sets the given player as the controlling player. This method will also ensure
+		* that the opposing team loses control over the ball.
+		*
+		* @param {Player} player - The new controlling player.
+		*/
 		setControl( player ) {
 
 			this.controllingPlayer = player;
@@ -61559,20 +61734,24 @@
 
 		}
 
+		/**
+		* Defines the home regions of the players according to the current team strategy.
+		*/
 		setupTeamPositions() {
 
+			// pick appropriate home regions
+
 			let regions;
-			const players = this.children;
 
 			if ( this.color === TEAM.RED ) {
 
 				if ( this.stateMachine.in( TEAM_STATES.DEFENDING ) ) {
 
-					regions = redDefendingRegions;
+					regions = _redDefendingRegions;
 
 				} else {
 
-					regions = redAttackingRegions;
+					regions = _redAttackingRegions;
 
 				}
 
@@ -61580,15 +61759,19 @@
 
 				if ( this.stateMachine.in( TEAM_STATES.DEFENDING ) ) {
 
-					regions = blueDefendingRegions;
+					regions = _blueDefendingRegions;
 
 				} else {
 
-					regions = blueAttackingRegions;
+					regions = _blueAttackingRegions;
 
 				}
 
 			}
+
+			// set new home regions
+
+			const players = this.children;
 
 			for ( let i = 0, l = players.length; i < l; i ++ ) {
 
@@ -61601,6 +61784,10 @@
 
 		}
 
+		/**
+		* Updates the steering targets of field players. This method only affects players in the WAIT and RETURN_HOME state
+		* to ensure they move to updated home regions.
+		*/
 		updateSteeringTargetOfPlayers() {
 
 			const players = this.children;
@@ -61625,6 +61812,9 @@
 
 		//
 
+		/**
+		* Creates the players of the team. It will also ensure to orient the players towards the opposing goal.
+		*/
 		_createPlayers() {
 
 			let rotation = Math.PI * 0.5;
@@ -61632,12 +61822,12 @@
 
 			if ( this.color === TEAM.RED ) {
 
-				regions = redDefendingRegions;
+				regions = _redDefendingRegions;
 				rotation *= - 1;
 
 			} else {
 
-				regions = blueDefendingRegions;
+				regions = _blueDefendingRegions;
 
 			}
 
@@ -61663,6 +61853,9 @@
 
 		}
 
+		/**
+		* This method is called in update() to determine the closest player to the ball per simulation step.
+		*/
 		_computePlayerClosestToBall() {
 
 			const ball = this.ball;
@@ -61810,13 +62003,6 @@
 		}
 
 	}
-
-	// these define the home regions for this state of each of the players
-	const blueAttackingRegions = [ 1, 12, 14, 6, 4 ];
-	const redAttackingRegions = [ 16, 3, 5, 9, 13 ];
-
-	const blueDefendingRegions = [ 1, 6, 8, 3, 5 ];
-	const redDefendingRegions = [ 16, 9, 11, 12, 14 ];
 
 	/**
 	 * @author Mugen87 / https://github.com/Mugen87

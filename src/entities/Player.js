@@ -103,6 +103,7 @@ class Player extends Vehicle {
 		//
 
 		this.position.copy( pitch.getRegionById( defaultRegionId ).center );
+		this.steeringTarget.copy( this.position );
 
 	}
 
