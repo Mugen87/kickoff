@@ -366,7 +366,7 @@ class World {
 
 		// ground
 
-		const groundGeometry = new PlaneBufferGeometry( 75, 75 );
+		const groundGeometry = new PlaneBufferGeometry( 250, 250 );
 		groundGeometry.rotateX( Math.PI * - 0.5 );
 		const groundMaterial = new MeshBasicMaterial( { color: new Color( 0xdb8d6e ).convertSRGBToLinear(), depthWrite: false } );
 		const groundMesh = new Mesh( groundGeometry, groundMaterial );

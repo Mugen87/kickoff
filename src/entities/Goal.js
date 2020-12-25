@@ -1,25 +1,64 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { GameEntity, Vector3 } from 'yuka';
 import { TEAM } from '../core/Constants';
 
+/**
+* Class for representing a soccer goal.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+* @augments GameEntity
+*/
 class Goal extends GameEntity {
 
-	constructor( width = 0, height = 0, color ) {
+	/**
+	* Constructs a new goal.
+	*
+	* @param {Number} width - The width of the goal.
+	* @param {Number} height - The height of the goal.
+	* @param {Number} color - The color of the team that owns this goal.
+	*/
+	constructor( width, height, color ) {
 
 		super();
 
+		/**
+		* The width of the goal.
+		* @type Number
+		*/
 		this.width = width;
+
+		/**
+		* The height of the goal.
+		* @type Number
+		*/
 		this.height = height;
+
+		/**
+		* The color of the team that owns this goal.
+		* @type Number
+		*/
 		this.color = color;
 
+		/**
+		* The position of the left post. Computed by computePosts().
+		* @type Vector3
+		*/
 		this.leftPost = null;
+
+		/**
+		* The position of the right post. Computed by computePosts().
+		* @type Vector3
+		*/
 		this.rightPost = null;
 
 	}
 
+	/**
+	* Returns the direction of the goal. This overwrites the implementation of
+	* GameEntity since the direction only depends on the team color.
+	*
+	* @param {Vector3} direction - The direction of the goal.
+	* @return {Vector3} The direction of the goal.
+	*/
 	getDirection( direction ) {
 
 		if ( this.color === TEAM.RED ) {
@@ -36,6 +75,9 @@ class Goal extends GameEntity {
 
 	}
 
+	/**
+	* Computes the posts of the goal.
+	*/
 	computePosts() {
 
 		this.leftPost = new Vector3();

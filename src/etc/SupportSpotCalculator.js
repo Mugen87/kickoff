@@ -1,27 +1,58 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { Regulator, Vector3 } from 'yuka';
 
 import { CONFIG, TEAM } from '../core/Constants.js';
 
 const _target = new Vector3();
 
+/**
+* Helper class to determine the best spots for a supporting soccer player to
+* move to.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class SupportSpotCalculator {
 
+	/**
+	* Constructs a new support spot calculator.
+	*
+	* @param {Team} team - The owner team of this calculator.
+	*/
 	constructor( team ) {
 
+		/**
+		* The owner team of this calculator.
+		* @type Team
+		*/
 		this.team = team;
 
+		/**
+		* Represents the current best supporting spot.
+		* @type Vector3
+		*/
 		this._bestSupportSpot = null;
+
+		/**
+		* Used to control how often the computation is done per second.
+		* @type VectRegulatorr3
+		*/
 		this._regulator = new Regulator( CONFIG.SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY );
+
+		/**
+		* Holds all possible supporting spots of a team.
+		* @type Array<Vector3>
+		*/
 		this._spots = [];
 
 		this._computeSupportingSpots();
 
 	}
 
+	/**
+	 * This method iterates through each possible spot and computes its score. The spot with the best
+	 * score is stored and returned. If not best spot could be computed, null is returned.
+	 *
+	 * @return {Vector3} Whether the given position is inside the region or not.
+	 */
 	computeBestSupportingPosition() {
 
 		let bestScore = 0;
@@ -105,6 +136,13 @@ class SupportSpotCalculator {
 
 	}
 
+	/**
+	* Returns the best supporting spot if there is one. If one hasn't been
+	* computed yet, this method calls computeBestSupportingPosition() and returns
+	* the result.
+	*
+	* @returns {Vector3} The best supporting spot on the soccer pitch.
+	*/
 	getBestSupportingPosition() {
 
 		if ( this._bestSupportSpot === null ) {
@@ -119,6 +157,10 @@ class SupportSpotCalculator {
 
 	}
 
+	/**
+	* This method computes all possible supporting spots and stores them in the internal array.
+	* Called only once by the constructor.
+	*/
 	_computeSupportingSpots() {
 
 		const playingField = this.team.pitch.playingArea;
@@ -136,6 +178,8 @@ class SupportSpotCalculator {
 		for ( let x = 0; x < ( CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_X * 0.5 ) - 1; x ++ ) {
 
 			for ( let y = 0; y < CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_Y; y ++ ) {
+
+				// The spots are always located in the opposing part of the soccer pitch.
 
 				if ( this.team.color === TEAM.RED ) {
 

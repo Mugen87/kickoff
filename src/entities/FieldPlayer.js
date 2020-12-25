@@ -1,21 +1,35 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { ArriveBehavior, PursuitBehavior, Regulator, SeekBehavior } from 'yuka';
 import { CONFIG, FIELDPLAYER_STATES } from '../core/Constants.js';
 import { ChaseBallState, DribbleState, GlobalState, KickBallState, ReceiveBallState, ReturnHomeState, SupportAttackerState, WaitState } from '../states/FieldplayerStates.js';
 import Player from './Player.js';
 
+/**
+* Base class for representing a field player.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+* @augments Player
+*/
 class FieldPlayer extends Player {
 
-	constructor( role, team, pitch, homeRegionId ) {
+	/**
+	* Constructs a new field player.
+	*
+	* @param {Number} role - The role of the player.
+	* @param {Team} team - A reference to its team.
+	* @param {Pitch} pitch - A reference to the pitch.
+	* @param {Number} defaultRegionId - The id of its default home region.
+	*/
+	constructor( role, team, pitch, defaultRegionId ) {
 
-		super( role, team, pitch, homeRegionId );
+		super( role, team, pitch, defaultRegionId );
 
+		/**
+		* Regulates how often a field player is able to kick the ball in one second.
+		* @type Number
+		*/
 		this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
-		//
+		// steering behaviors
 
 		const seekBehavior = new SeekBehavior();
 		seekBehavior.active = false;
@@ -30,7 +44,7 @@ class FieldPlayer extends Player {
 		pursuitBehavior.active = false;
 		this.steering.add( pursuitBehavior );
 
-		//
+		// states
 
 		this.stateMachine.globalState = new GlobalState();
 
@@ -46,9 +60,17 @@ class FieldPlayer extends Player {
 
 	}
 
+	/**
+	* Updates the field player.
+	*
+	* @param {Number} delta - The time delta value.
+	* @return {FieldPlayer} A reference to this field player.
+	*/
 	update( delta ) {
 
 		super.update( delta );
+
+		// in certain states field player should always focus the ball (in others it might be the steering target)
 
 		if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) || this.stateMachine.in( FIELDPLAYER_STATES.KICK_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.WAIT ) ) {
 
@@ -58,6 +80,11 @@ class FieldPlayer extends Player {
 
 	}
 
+	/**
+	* Returns true if the field player is able to kick the ball again.
+	*
+	* @return {Boolean} Whether the field player is able to kick the ball again or not.
+	*/
 	isReadyForNextKick() {
 
 		return this._kickRegulator.ready();

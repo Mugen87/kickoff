@@ -1,7 +1,3 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { MovingEntity, Ray, Vector3 } from 'yuka';
 import { MESSAGE, TEAM } from '../core/Constants';
 
@@ -10,27 +6,70 @@ const _brakingForce = new Vector3();
 const _ray = new Ray();
 const _intersectionPoint = new Vector3();
 
+/**
+* Class for representing a soccer ball.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+* @augments MovingEntity
+*/
 class Ball extends MovingEntity {
 
+	/**
+	* Constructs a new ball.
+	*
+	* @param {Pitch} pitch - A reference to the soccer pitch.
+	*/
 	constructor( pitch ) {
 
 		super();
 
+		/**
+		* The bounding radius of the ball.
+		* @type Number
+		*/
 		this.boundingRadius = 0.1;
 
-		this.pitch = pitch;
-
+		/**
+		* The mass of the ball.
+		* @type Number
+		*/
 		this.mass = 0.44; // 440g
+
+		/**
+		* The maximum speed of the ball.
+		* @type Number
+		*/
 		this.maxSpeed = 42; // 42 m/s ~ 150km/h
 
-		this.friction = - 0.8; // This value decreases the velocity of the ball over time.
+		/**
+		* A reference to the soccer pitch.
+		* @type Pitch
+		*/
+		this.pitch = pitch;
+
+		/**
+		* The friction of the ball. This value decreases the velocity of the ball over time.
+		* @type Number
+		*/
+		this.friction = - 0.8;
 
 		// internals
 
+		/**
+		* Represents the previous position of the ball in a single frame.
+		* @type Vector3
+		*/
 		this._previousPosition = new Vector3();
 
 	}
 
+	/**
+	* Updates the ball physics, checks for goals, tests for any collisions and
+	* adjusts the ball's velocity accordingly.
+	*
+	* @param {Number} delta - The time delta value.
+	* @return {Ball} A reference to this ball.
+	*/
 	update( delta ) {
 
 		this._previousPosition.copy( this.position );
@@ -55,15 +94,21 @@ class Ball extends MovingEntity {
 
 		}
 
+		return this;
+
 	}
 
+	/**
+	* Applies the given force to the ball. For simplicity we do no use a physical correct model here:
+	*
+	* 1. The ball is assumed to have a zero velocity immediately prior to a kick.
+	* 2. The force and the resulting acceleration of a kick is applied in a single simulation step.
+	* Hence, the lenght of the acceleration represents the new speed (and consequently the velocity) of the ball.
+	*
+	* @param {Vector3} force - The force.
+	* @return {Ball} A reference to this ball.
+	*/
 	kick( force ) {
-
-		// For simplicity we do no use a physical correct model here:
-		//
-		// 1. The ball is assumed to have a zero velocity immediately prior to a kick.
-		// 2. The force and the resulting acceleration of a kick is applied in a single simulation step.
-		//    Hence, the lenght of the acceleration represents the new speed (and consequently the velocity) of the ball.
 
 		_acceleration.copy( force ).divideScalar( this.mass );
 
@@ -73,6 +118,12 @@ class Ball extends MovingEntity {
 
 	}
 
+	/**
+	* Positions the ball at the given location and sets the ball's velocity to zero.
+	*
+	* @param {Vector3} position - The new position of the ball (optional).
+	* @return {Ball} A reference to this ball.
+	*/
 	placeAt( position = new Vector3( 0, 0, 0 ) ) {
 
 		this.position.copy( position );
@@ -82,10 +133,20 @@ class Ball extends MovingEntity {
 
 	}
 
+	/**
+	* Given a distance to cover defined by two vectors and a force, this method calculates how
+	* long it will take the ball to travel between the two points.
+	*
+	* @param {Vector3} startPosition - The start position of the ball.
+	* @param {Vector3} endPosition - The end position of the ball.
+	* @param {Number} force - The force of the ball.
+	* @return {Ball} A time value in second that represents how long it will take the ball to travel between the two points.
+	*/
 	timeToCoverDistance( startPosition, endPosition, force ) {
 
 		// Similar to kick(), we assume no accumulative velocities in this method. Meaning the following computation
 		// represents the speed of the ball if the player was to make the pass.
+
 		const speed = force / this.mass;
 
 		// Calculate the velocity at the end position using the equation: v^2 = u^2 + 2as.
@@ -95,6 +156,7 @@ class Ball extends MovingEntity {
 		const term = ( speed * speed ) + ( 2 * this.friction * s );
 
 		// If (u^2 + 2as) is negative it means the ball cannot reach the end position.
+
 		if ( term <= 0.0 ) {
 
 			return - 1.0;
@@ -111,6 +173,12 @@ class Ball extends MovingEntity {
 
 	}
 
+	/**
+	* This is used by players and goalkeepers to "trap" a ball, to stop it dead.
+	* That player is then assumed to be in possession of the ball.
+	*
+	* @return {Ball} A reference to this ball.
+	*/
 	trap() {
 
 		this.velocity.set( 0, 0, 0 );
@@ -119,6 +187,12 @@ class Ball extends MovingEntity {
 
 	}
 
+	/**
+	* Checks for collisions between the ball and the walls of the pitch. When a collision is detected,
+	* the ball's velocity is adjusted accordingly.
+	*
+	* @return {Ball} A reference to this ball.
+	*/
 	_collisionDetection() {
 
 		const walls = this.pitch.walls;
@@ -159,6 +233,12 @@ class Ball extends MovingEntity {
 
 	}
 
+	/**
+	* Checks if the ball crosses both goal lines on the pitch. If a goal is detected, the method returns
+	* true and informs both teams and the pitch about the score.
+	*
+	* @return {Boolean} Whether a goal was detected or not.
+	*/
 	_isScored() {
 
 		const teamBlue = this.pitch.teamBlue;
@@ -186,7 +266,11 @@ class Ball extends MovingEntity {
 
 		if ( team !== null ) {
 
+			// reset the ball to the origin
+
 			this.placeAt( new Vector3( 0, 0, 0 ) );
+
+			// inform game entities
 
 			this.sendMessage( teamBlue, MESSAGE.GOAL_SCORED, 0, { team: team } );
 			this.sendMessage( teamRed, MESSAGE.GOAL_SCORED, 0, { team: team } );
@@ -201,6 +285,8 @@ class Ball extends MovingEntity {
 	}
 
 }
+
+//
 
 function checkLineIntersection( line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY ) {
 

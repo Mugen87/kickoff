@@ -58625,11 +58625,17 @@
 	var GUI$1 = GUI;
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* Class for representing the app's asset manager. It is responsible
+	* for loading and parsing all assets from the backend and providing
+	* the result in a series of maps.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class AssetManager {
 
+		/**
+		* Constructs a new asset manager.
+		*/
 		constructor() {
 
 			this.textures = new Map();
@@ -58639,6 +58645,12 @@
 
 		}
 
+		/**
+		* Initializes the asset manager. All assets are prepared so they
+		* can be used by the game.
+		*
+		* @return {Promise} Resolves when all assets are ready.
+		*/
 		async init() {
 
 			this._loadTextures();
@@ -58655,11 +58667,18 @@
 
 		}
 
+		/**
+		* Loads all textures from the backend.
+		*
+		* @return {AssetManager} A reference to this asset manager.
+		*/
 		_loadTextures() {
 
 			const pitchTexture = this.textureLoader.load( './textures/pitch_texture.jpg' );
 			pitchTexture.encoding = sRGBEncoding;
 			this.textures.set( 'pitchTexture', pitchTexture );
+
+			return this;
 
 		}
 
@@ -58694,15 +58713,15 @@
 	};
 	const CONFIG = {
 		GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
-		GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+		GOALKEEPER_INTERCEPT_RANGE: 4, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
 		GOALKEEPER_MIN_PASS_DISTANCE: 2, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
 		GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
 		PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 0.5, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
 		PLAYER_CHANCE_ATTEMPT_POT_SHOT: 0.005, // the chance a player might take a random pot shot at the goal
-		PLAYER_COMFORT_ZONE: 3, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
-		PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
+		PLAYER_COMFORT_ZONE: 2.5, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
+		PLAYER_IN_TARGET_RANGE: 0.25, // the player has to be this close to its steering target to be considered as arrived
 		PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
-		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
+		PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it
 		PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
 		PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
 		PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
@@ -58742,36 +58761,75 @@
 	CONFIG.PLAYER_KICKING_DISTANCE_SQ = CONFIG.PLAYER_KICKING_DISTANCE * CONFIG.PLAYER_KICKING_DISTANCE;
 	CONFIG.PLAYER_RECEIVING_RANGE_SQ = CONFIG.PLAYER_RECEIVING_RANGE * CONFIG.PLAYER_RECEIVING_RANGE;
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _acceleration = new Vector3$1();
 	const _brakingForce = new Vector3$1();
 	const _ray$3 = new Ray$1();
 	const _intersectionPoint$1 = new Vector3$1();
 
+	/**
+	* Class for representing a soccer ball.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments MovingEntity
+	*/
 	class Ball extends MovingEntity {
 
+		/**
+		* Constructs a new ball.
+		*
+		* @param {Pitch} pitch - A reference to the soccer pitch.
+		*/
 		constructor( pitch ) {
 
 			super();
 
+			/**
+			* The bounding radius of the ball.
+			* @type Number
+			*/
 			this.boundingRadius = 0.1;
 
-			this.pitch = pitch;
-
+			/**
+			* The mass of the ball.
+			* @type Number
+			*/
 			this.mass = 0.44; // 440g
+
+			/**
+			* The maximum speed of the ball.
+			* @type Number
+			*/
 			this.maxSpeed = 42; // 42 m/s ~ 150km/h
 
-			this.friction = - 0.8; // This value decreases the velocity of the ball over time.
+			/**
+			* A reference to the soccer pitch.
+			* @type Pitch
+			*/
+			this.pitch = pitch;
+
+			/**
+			* The friction of the ball. This value decreases the velocity of the ball over time.
+			* @type Number
+			*/
+			this.friction = - 0.8;
 
 			// internals
 
+			/**
+			* Represents the previous position of the ball in a single frame.
+			* @type Vector3
+			*/
 			this._previousPosition = new Vector3$1();
 
 		}
 
+		/**
+		* Updates the ball physics, checks for goals, tests for any collisions and
+		* adjusts the ball's velocity accordingly.
+		*
+		* @param {Number} delta - The time delta value.
+		* @return {Ball} A reference to this ball.
+		*/
 		update( delta ) {
 
 			this._previousPosition.copy( this.position );
@@ -58796,15 +58854,21 @@
 
 			}
 
+			return this;
+
 		}
 
+		/**
+		* Applies the given force to the ball. For simplicity we do no use a physical correct model here:
+		*
+		* 1. The ball is assumed to have a zero velocity immediately prior to a kick.
+		* 2. The force and the resulting acceleration of a kick is applied in a single simulation step.
+		* Hence, the lenght of the acceleration represents the new speed (and consequently the velocity) of the ball.
+		*
+		* @param {Vector3} force - The force.
+		* @return {Ball} A reference to this ball.
+		*/
 		kick( force ) {
-
-			// For simplicity we do no use a physical correct model here:
-			//
-			// 1. The ball is assumed to have a zero velocity immediately prior to a kick.
-			// 2. The force and the resulting acceleration of a kick is applied in a single simulation step.
-			//    Hence, the lenght of the acceleration represents the new speed (and consequently the velocity) of the ball.
 
 			_acceleration.copy( force ).divideScalar( this.mass );
 
@@ -58814,6 +58878,12 @@
 
 		}
 
+		/**
+		* Positions the ball at the given location and sets the ball's velocity to zero.
+		*
+		* @param {Vector3} position - The new position of the ball (optional).
+		* @return {Ball} A reference to this ball.
+		*/
 		placeAt( position = new Vector3$1( 0, 0, 0 ) ) {
 
 			this.position.copy( position );
@@ -58823,10 +58893,20 @@
 
 		}
 
+		/**
+		* Given a distance to cover defined by two vectors and a force, this method calculates how
+		* long it will take the ball to travel between the two points.
+		*
+		* @param {Vector3} startPosition - The start position of the ball.
+		* @param {Vector3} endPosition - The end position of the ball.
+		* @param {Number} force - The force of the ball.
+		* @return {Ball} A time value in second that represents how long it will take the ball to travel between the two points.
+		*/
 		timeToCoverDistance( startPosition, endPosition, force ) {
 
 			// Similar to kick(), we assume no accumulative velocities in this method. Meaning the following computation
 			// represents the speed of the ball if the player was to make the pass.
+
 			const speed = force / this.mass;
 
 			// Calculate the velocity at the end position using the equation: v^2 = u^2 + 2as.
@@ -58836,6 +58916,7 @@
 			const term = ( speed * speed ) + ( 2 * this.friction * s );
 
 			// If (u^2 + 2as) is negative it means the ball cannot reach the end position.
+
 			if ( term <= 0.0 ) {
 
 				return - 1.0;
@@ -58852,6 +58933,12 @@
 
 		}
 
+		/**
+		* This is used by players and goalkeepers to "trap" a ball, to stop it dead.
+		* That player is then assumed to be in possession of the ball.
+		*
+		* @return {Ball} A reference to this ball.
+		*/
 		trap() {
 
 			this.velocity.set( 0, 0, 0 );
@@ -58860,6 +58947,12 @@
 
 		}
 
+		/**
+		* Checks for collisions between the ball and the walls of the pitch. When a collision is detected,
+		* the ball's velocity is adjusted accordingly.
+		*
+		* @return {Ball} A reference to this ball.
+		*/
 		_collisionDetection() {
 
 			const walls = this.pitch.walls;
@@ -58900,6 +58993,12 @@
 
 		}
 
+		/**
+		* Checks if the ball crosses both goal lines on the pitch. If a goal is detected, the method returns
+		* true and informs both teams and the pitch about the score.
+		*
+		* @return {Boolean} Whether a goal was detected or not.
+		*/
 		_isScored() {
 
 			const teamBlue = this.pitch.teamBlue;
@@ -58927,7 +59026,11 @@
 
 			if ( team !== null ) {
 
+				// reset the ball to the origin
+
 				this.placeAt( new Vector3$1( 0, 0, 0 ) );
+
+				// inform game entities
 
 				this.sendMessage( teamBlue, MESSAGE.GOAL_SCORED, 0, { team: team } );
 				this.sendMessage( teamRed, MESSAGE.GOAL_SCORED, 0, { team: team } );
@@ -58942,6 +59045,8 @@
 		}
 
 	}
+
+	//
 
 	function checkLineIntersection( line1StartX, line1StartY, line1EndX, line1EndY, line2StartX, line2StartY, line2EndX, line2EndY ) {
 
@@ -58973,24 +59078,63 @@
 	}
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* Class for representing a soccer goal.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments GameEntity
+	*/
 	class Goal$1 extends GameEntity {
 
-		constructor( width = 0, height = 0, color ) {
+		/**
+		* Constructs a new goal.
+		*
+		* @param {Number} width - The width of the goal.
+		* @param {Number} height - The height of the goal.
+		* @param {Number} color - The color of the team that owns this goal.
+		*/
+		constructor( width, height, color ) {
 
 			super();
 
+			/**
+			* The width of the goal.
+			* @type Number
+			*/
 			this.width = width;
+
+			/**
+			* The height of the goal.
+			* @type Number
+			*/
 			this.height = height;
+
+			/**
+			* The color of the team that owns this goal.
+			* @type Number
+			*/
 			this.color = color;
 
+			/**
+			* The position of the left post. Computed by computePosts().
+			* @type Vector3
+			*/
 			this.leftPost = null;
+
+			/**
+			* The position of the right post. Computed by computePosts().
+			* @type Vector3
+			*/
 			this.rightPost = null;
 
 		}
 
+		/**
+		* Returns the direction of the goal. This overwrites the implementation of
+		* GameEntity since the direction only depends on the team color.
+		*
+		* @param {Vector3} direction - The direction of the goal.
+		* @return {Vector3} The direction of the goal.
+		*/
 		getDirection( direction ) {
 
 			if ( this.color === TEAM.RED ) {
@@ -59007,6 +59151,9 @@
 
 		}
 
+		/**
+		* Computes the posts of the goal.
+		*/
 		computePosts() {
 
 			this.leftPost = new Vector3$1();
@@ -59037,37 +59184,81 @@
 	}
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* Defines a rectangular region. This class is used to split up the
+	* pitch into multiple regions which can be used by the AI to implement
+	* different strategies.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class Region {
 
+		/**
+		* Constructs a new mesh geometry.
+		*
+		* @param {Vector3} center - The center point of the region.
+		* @param {Number} width - The width of the region.
+		* @param {Number} height - The height of the region.
+		* @param {Number} id - The unique identifier of the region.
+		*/
 		constructor( center, width, height, id = 0 ) {
 
+			/**
+			* The center point of the region.
+			* @type Vector3
+			*/
 			this.center = center;
 
+			/**
+			* The width of the region.
+			* @type Number
+			*/
 			this.width = width;
+
+			/**
+			* The height of the region.
+			* @type Number
+			*/
 			this.height = height;
 
+			/**
+			* The unique identifier of the region.
+			* @type Number
+			*/
 			this.id = id;
 
+			/**
+			* The outer left position of the region.
+			* @type Number
+			*/
 			this.left = center.x - ( width / 2 );
+
+			/**
+			* The outer right position of the region.
+			* @type Number
+			*/
 			this.right = center.x + ( width / 2 );
+
+			/**
+			* The outer top position of the region.
+			* @type Number
+			*/
 			this.top = center.z + ( height / 2 );
+
+			/**
+			* The outer bottom position of the region.
+			* @type Number
+			*/
 			this.bottom = center.z - ( height / 2 );
 
 		}
 
-		getRandomPosition( position ) {
-
-			position.x = MathUtils$1.randFloat( this.left, this.right );
-			position.y = 0;
-			position.z = MathUtils$1.randFloat( this.bottom, this.top );
-
-			return position;
-
-		}
-
+		/**
+		* Returns true if the given position is inside this region.
+		*
+		* @param {Vector3} position - The position to test.
+		* @param {Boolean} isHalfSize - Whether the region has half size or not which makes the test more strict (optional).
+		* @return {Boolean} Whether the given position is inside the region or not.
+		*/
 		isInside( position, isHalfSize = false ) {
 
 			let marginX, marginY;
@@ -59096,17 +59287,35 @@
 	}
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* Class for representing a soccer pitch.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments GameEntity
+	*/
 	class Pitch extends GameEntity {
 
+		/**
+		* Constructs a new pitch.
+		*
+		* @param {Number} width - The width of the pitch.
+		* @param {Number} height - The height of the pitch.
+		* @param {World} world - A reference to the World class.
+		*/
 		constructor( width, height, world ) {
 
 			super();
 
+			/**
+			* A reference to the World class.
+			* @type World
+			*/
 			this.world = world;
 
+			/**
+			* Represents the walls of the soccer pitch. The ball will
+			* collide against these walls so it can leave the playing area.
+			* @type Array<Plane>
+			*/
 			this.walls = [
 				new Plane$1( new Vector3$1( 0, 0, - 1 ), 7.5 ), // top
 				new Plane$1( new Vector3$1( 0, 0, 1 ), 7.5 ), // bottom
@@ -59114,23 +59323,70 @@
 				new Plane$1( new Vector3$1( 1, 0, 0 ), 10 ), // left (blue goal)
 			];
 
+			/**
+			* Whether both teams are playing or not.
+			* @type Boolean
+			*/
 			this.isPlaying = true;
+
+			/**
+			* Whether one of the goalkeepers is in ball possession or not.
+			* @type Boolean
+			*/
 			this.isGoalKeeperInBallPossession = false;
 
+			/**
+			* A reference to the soccer ball.
+			* @type Ball
+			*/
 			this.ball = null;
+
+			/**
+			* A reference to the red team.
+			* @type Team
+			*/
 			this.teamRed = null;
+
+			/**
+			* A reference to the blue team.
+			* @type Team
+			*/
 			this.teamBlue = null;
 
+			/**
+			* Represents the playing area of the pitch.
+			* @type Region
+			*/
 			this.playingArea = new Region( this.position.clone(), width, height );
 
+			/**
+			* The region count the pitch along the x axis.
+			* @type Number
+			*/
 			this.regionCountWidth = 6;
+
+			/**
+			* The region count the pitch along the z axis.
+			* @type Number
+			*/
 			this.regionCountHeight = 3;
 
+			/**
+			* Holds the regions of the soccer pitch.
+			* @type Array<Region>
+			*/
 			this.regions = [];
+
 			this._createRegions();
 
 		}
 
+		/**
+		* Holds the implementation for the message handling of this pitch.
+		*
+		* @param {Telegram} telegram - The telegram with the message data.
+		* @return {Boolean} Whether the message was processed or not.
+		*/
 		handleMessage( telegram ) {
 
 			switch ( telegram.message ) {
@@ -59149,12 +59405,21 @@
 
 		}
 
+		/**
+		* Returns the region for the given ID.
+		*
+		* @param {Number} id - The id for the requested region.
+		* @return {Region} The requested region.
+		*/
 		getRegionById( id ) {
 
 			return this.regions[ id ];
 
 		}
 
+		/**
+		* Generates the regions of this pitch. All regions lie in a XZ at the origin.
+		*/
 		_createRegions() {
 
 			const playingArea = this.playingArea;
@@ -59184,26 +59449,57 @@
 
 	}
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _target$1 = new Vector3$1();
 
+	/**
+	* Helper class to determine the best spots for a supporting soccer player to
+	* move to.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class SupportSpotCalculator {
 
+		/**
+		* Constructs a new support spot calculator.
+		*
+		* @param {Team} team - The owner team of this calculator.
+		*/
 		constructor( team ) {
 
+			/**
+			* The owner team of this calculator.
+			* @type Team
+			*/
 			this.team = team;
 
+			/**
+			* Represents the current best supporting spot.
+			* @type Vector3
+			*/
 			this._bestSupportSpot = null;
+
+			/**
+			* Used to control how often the computation is done per second.
+			* @type VectRegulatorr3
+			*/
 			this._regulator = new Regulator( CONFIG.SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY );
+
+			/**
+			* Holds all possible supporting spots of a team.
+			* @type Array<Vector3>
+			*/
 			this._spots = [];
 
 			this._computeSupportingSpots();
 
 		}
 
+		/**
+		 * This method iterates through each possible spot and computes its score. The spot with the best
+		 * score is stored and returned. If not best spot could be computed, null is returned.
+		 *
+		 * @return {Vector3} Whether the given position is inside the region or not.
+		 */
 		computeBestSupportingPosition() {
 
 			let bestScore = 0;
@@ -59287,6 +59583,13 @@
 
 		}
 
+		/**
+		* Returns the best supporting spot if there is one. If one hasn't been
+		* computed yet, this method calls computeBestSupportingPosition() and returns
+		* the result.
+		*
+		* @returns {Vector3} The best supporting spot on the soccer pitch.
+		*/
 		getBestSupportingPosition() {
 
 			if ( this._bestSupportSpot === null ) {
@@ -59301,6 +59604,10 @@
 
 		}
 
+		/**
+		* This method computes all possible supporting spots and stores them in the internal array.
+		* Called only once by the constructor.
+		*/
 		_computeSupportingSpots() {
 
 			const playingField = this.team.pitch.playingArea;
@@ -59318,6 +59625,8 @@
 			for ( let x = 0; x < ( CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_X * 0.5 ) - 1; x ++ ) {
 
 				for ( let y = 0; y < CONFIG.SUPPORT_SPOT_CALCULATOR_SLICE_Y; y ++ ) {
+
+					// The spots are always located in the opposing part of the soccer pitch.
 
 					if ( this.team.color === TEAM.RED ) {
 
@@ -60086,48 +60395,117 @@
 
 	}
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _quaterion = new Quaternion$1();
 	const _displacement = new Vector3$1();
 	const _direction = new Vector3$1();
 	const _toPosition = new Vector3$1();
 
+	/**
+	* Base class for representing a soccer players.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments Vehicle
+	*/
 	class Player extends Vehicle {
 
-		constructor( role, team, pitch, homeRegionId ) {
+		/**
+		* Constructs a new player.
+		*
+		* @param {Number} role - The role of the player.
+		* @param {Team} team - A reference to its team.
+		* @param {Pitch} pitch - A reference to the pitch.
+		* @param {Number} defaultRegionId - The id of its default home region.
+		*/
+		constructor( role, team, pitch, defaultRegionId ) {
 
 			super();
 
-			this.boundingRadius = 0.2;
-			this.maxSpeed = 2;
-			this.updateOrientation = false;
-
-			this.role = role;
-
-			this.team = team;
-			this.pitch = pitch;
-
-			this.homeRegionId = homeRegionId;
-			this.defaultRegionId = homeRegionId;
-
-			this.position.copy( pitch.getRegionById( homeRegionId ).center );
-
-			// Must be in the range [0,1]. Adjusts the amount of noise added to a kick.
-			// The lower the value the worse the player gets.
-
+			/**
+			* The accuracy of kicks. Must be in the range [0,1]. The lower the value the worse the player gets.
+			* @type Number
+			*/
 			this.accuracy = 1;
 
+			/**
+			* The bounding radius of the player.
+			* @type Number
+			*/
+			this.boundingRadius = 0.2;
+
+			/**
+			* The current time delta value. Used in states.
+			* @type Number
+			*/
+			this.currentDelta = 0;
+
+			/**
+			* The default region of this player. This region represents the area
+			* of the pitch where the player is located before kickoff.
+			* @type Number
+			*/
+			this.defaultRegionId = defaultRegionId;
+
+			/**
+			* The current home region of this player. This region will vary over time
+			* according to the team's strategy.
+			* @type Number
+			*/
+			this.homeRegionId = defaultRegionId;
+
+			/**
+			* The maximum speed of the ball.
+			* @type Number
+			*/
+			this.maxSpeed = 2;
+
+			/**
+			* A reference to the pitch.
+			* @type Pitch
+			*/
+			this.pitch = pitch;
+
+			/**
+			* Players can take different roles e.g. Attacker or Defender.
+			* @type Number
+			*/
+			this.role = role;
+
+			/**
+			* The state machine of the player.
+			* @type StateMachine
+			*/
 			this.stateMachine = new StateMachine( this );
 
+			/**
+			* The current steering target of the player.
+			* @type StateMachine
+			*/
 			this.steeringTarget = new Vector3$1();
 
-			this.currentDelta = 0;
+			/**
+			* A reference to the player's team.
+			* @type Team
+			*/
+			this.team = team;
+
+			/**
+			* Players have to update their orientation manually.
+			* @type Boolean
+			*/
+			this.updateOrientation = false;
+
+			//
+
+			this.position.copy( pitch.getRegionById( defaultRegionId ).center );
 
 		}
 
+		/**
+		* Updates the player.
+		*
+		* @param {Number} delta - The time delta value.
+		* @return {Player} A reference to this player.
+		*/
 		update( delta ) {
 
 			this.currentDelta = delta;
@@ -60136,14 +60514,29 @@
 
 			super.update( delta );
 
+			return this;
+
 		}
 
+		/**
+		* Holds the implementation for the message handling of this player.
+		*
+		* @param {Telegram} telegram - The telegram with the message data.
+		* @return {Boolean} Whether the message was processed or not.
+		*/
 		handleMessage( telegram ) {
 
 			return this.stateMachine.handleMessage( telegram );
 
 		}
 
+		/**
+		* Adds a random noice value to the given target position. This can be used to avoid
+		* "perfect" kicks and introduce a natural randomness.
+		*
+		* @param {Vector3} target - The target position.
+		* @return {Vector3} The target position.
+		*/
 		addNoise( target ) {
 
 			const displacement = ( Math.PI - Math.PI * this.accuracy ) * MathUtils$1.randFloat( - 1, 1 );
@@ -60156,6 +60549,11 @@
 
 		}
 
+		/**
+		* Returns the euclidean distance from the player's position to its home goal.
+		*
+		* @return {Number} The euclidean distance from the player's position to its home goal.
+		*/
 		getDistanceToHomeGoal() {
 
 			const goal = this.team.homeGoal;
@@ -60164,6 +60562,11 @@
 
 		}
 
+		/**
+		* Returns the euclidean distance from the player's position to the opposing goal.
+		*
+		* @return {Number} The euclidean distance from the player's position to the opposing goal.
+		*/
 		getDistanceToOpposingGoal() {
 
 			const goal = this.team.opposingGoal;
@@ -60172,6 +60575,12 @@
 
 		}
 
+		/**
+		* Returns true if this player is ahead of the team's controlling player. If the own
+		* team does not possess the ball, false is returned.
+		*
+		* @return {Boolean} Whether this player is ahead of the team's controlling player or not.
+		*/
 		isAheadOfAttacker() {
 
 			const team = this.team;
@@ -60188,20 +60597,22 @@
 
 		}
 
+		/**
+		* Returns true if this player is at the position of its current steering target.
+		*
+		* @return {Boolean} Whether this player is at the position of its current steering target or not.
+		*/
 		atTarget() {
 
 			return this.position.squaredDistanceTo( this.steeringTarget ) < CONFIG.PLAYER_IN_TARGET_RANGE_SQ;
 
 		}
 
-		isBallWithinKeeperRange() {
-
-			const ball = this.team.ball;
-
-			return this.position.squaredDistanceTo( ball.position ) < CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ;
-
-		}
-
+		/**
+		* Returns true if this player is close enough to the ball to kick it.
+		*
+		* @return {Boolean} Whether this player is close enough to the ball in order to kick it or not.
+		*/
 		isBallWithinKickingRange() {
 
 			const ball = this.team.ball;
@@ -60210,6 +60621,11 @@
 
 		}
 
+		/**
+		* Returns true if this player is close enough to the ball to start chasing it.
+		*
+		* @return {Boolean} Whether this player is close enough to the ball to start chasing it or not.
+		*/
 		isBallWithinReceivingRange() {
 
 			const ball = this.team.ball;
@@ -60218,12 +60634,22 @@
 
 		}
 
+		/**
+		* Returns true if this player is the closes team member to the ball.
+		*
+		* @return {Boolean} Whether this player is the closes team member to the ball or not.
+		*/
 		isClosestTeamMemberToBall() {
 
 			return this === this.team.playerClosestToBall;
 
 		}
 
+		/**
+		* Returns true if this player is the closes player to the ball.
+		*
+		* @return {Boolean} Whether this player is the closes player to the ball or not.
+		*/
 		isClosestPlayerOnPitchToBall() {
 
 			if ( this.isClosestTeamMemberToBall() ) {
@@ -60241,12 +60667,22 @@
 
 		}
 
+		/**
+		* Returns true if this player is the controlling player of the team.
+		*
+		* @return {Boolean} Whether this player is the controlling player of the team or not.
+		*/
 		isControllingPlayer() {
 
 			return ( this === this.team.controllingPlayer );
 
 		}
 
+		/**
+		* Returns true if the given position is in front of the player.
+		*
+		* @return {Boolean} Whether the given position is in front of the player or not.
+		*/
 		isPositionInFrontOfPlayer( position ) {
 
 			this.getDirection( _direction );
@@ -60257,6 +60693,11 @@
 
 		}
 
+		/**
+		* Returns true if this player is in its home region.
+		*
+		* @return {Boolean} Whether this player is in its home region or not.
+		*/
 		inHomeRegion() {
 
 			const homeRegion = this.getHomeRegion();
@@ -60267,12 +60708,22 @@
 
 		}
 
+		/**
+		* Returns true if this player is in the third of the pitch closest to the opponent’s goal.
+		*
+		* @return {Boolean} Whether this player is in the third of the pitch closest to the opponent’s goal or not.
+		*/
 		inHotRegion() {
 
 			return this.getDistanceToOpposingGoal() < ( this.pitch.playingArea.width / 3 );
 
 		}
 
+		/**
+		* Returns true if there is an opponent within this player's comfort zone.
+		*
+		* @return {Boolean} Whether this player is in its home region or not.
+		*/
 		isThreatened() {
 
 			const opponents = this.team.opposingTeam.children;
@@ -60280,6 +60731,8 @@
 			for ( let i = 0, l = opponents.length; i < l; i ++ ) {
 
 				const opponent = opponents[ i ];
+
+				// if opponent is in front of the player and the distance to the opponent is less than the comfort zone, return true
 
 				if ( this.isPositionInFrontOfPlayer( opponent.position ) && this.position.squaredDistanceTo( opponent.position ) < CONFIG.PLAYER_COMFORT_ZONE_SQ ) {
 
@@ -60293,12 +60746,20 @@
 
 		}
 
+		/**
+		* Returns the player's home region.
+		*
+		* @return {Region} The player's home region.
+		*/
 		getHomeRegion() {
 
 			return this.pitch.getRegionById( this.homeRegionId );
 
 		}
 
+		/**
+		* Overwrites the home region with the defaul region of the player.
+		*/
 		setDefaultHomeRegion() {
 
 			this.homeRegionId = this.defaultRegionId;
@@ -60308,18 +60769,32 @@
 	}
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* Base class for representing a field player.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments Player
+	*/
 	class FieldPlayer extends Player {
 
-		constructor( role, team, pitch, homeRegionId ) {
+		/**
+		* Constructs a new field player.
+		*
+		* @param {Number} role - The role of the player.
+		* @param {Team} team - A reference to its team.
+		* @param {Pitch} pitch - A reference to the pitch.
+		* @param {Number} defaultRegionId - The id of its default home region.
+		*/
+		constructor( role, team, pitch, defaultRegionId ) {
 
-			super( role, team, pitch, homeRegionId );
+			super( role, team, pitch, defaultRegionId );
 
+			/**
+			* Regulates how often a field player is able to kick the ball in one second.
+			* @type Number
+			*/
 			this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
-			//
+			// steering behaviors
 
 			const seekBehavior = new SeekBehavior();
 			seekBehavior.active = false;
@@ -60334,7 +60809,7 @@
 			pursuitBehavior.active = false;
 			this.steering.add( pursuitBehavior );
 
-			//
+			// states
 
 			this.stateMachine.globalState = new GlobalState$1();
 
@@ -60350,9 +60825,17 @@
 
 		}
 
+		/**
+		* Updates the field player.
+		*
+		* @param {Number} delta - The time delta value.
+		* @return {FieldPlayer} A reference to this field player.
+		*/
 		update( delta ) {
 
 			super.update( delta );
+
+			// in certain states field player should always focus the ball (in others it might be the steering target)
 
 			if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) || this.stateMachine.in( FIELDPLAYER_STATES.KICK_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.WAIT ) ) {
 
@@ -60362,6 +60845,11 @@
 
 		}
 
+		/**
+		* Returns true if the field player is able to kick the ball again.
+		*
+		* @return {Boolean} Whether the field player is able to kick the ball again or not.
+		*/
 		isReadyForNextKick() {
 
 			return this._kickRegulator.ready();
@@ -60592,19 +61080,28 @@
 
 	}
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _target$3 = new Vector3$1();
 
+	/**
+	* Base class for representing a goalkeeper.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	* @augments Player
+	*/
 	class Goalkeeper extends Player {
 
-		constructor( team, pitch, homeRegionId ) {
+		/**
+		* Constructs a new goalkeeper.
+		*
+		* @param {Team} team - A reference to its team.
+		* @param {Pitch} pitch - A reference to the pitch.
+		* @param {Number} defaultRegionId - The id of its default home region.
+		*/
+		constructor( team, pitch, defaultRegionId ) {
 
-			super( ROLE.GOALKEEPER, team, pitch, homeRegionId );
+			super( ROLE.GOALKEEPER, team, pitch, defaultRegionId );
 
-			//
+			// steering behaviors
 
 			const arriveBehavior = new ArriveBehavior();
 			arriveBehavior.deceleration = 1.5;
@@ -60615,7 +61112,7 @@
 			pursuitBehavior.active = false;
 			this.steering.add( pursuitBehavior );
 
-			//
+			// states
 
 			this.stateMachine.globalState = new GlobalState$2();
 
@@ -60628,6 +61125,12 @@
 
 		}
 
+		/**
+		* Updates the goalkeeper.
+		*
+		* @param {Number} delta - The time delta value.
+		* @return {Goalkeeper} A reference to this goalkeeper.
+		*/
 		update( delta ) {
 
 			super.update( delta );
@@ -60636,6 +61139,26 @@
 
 		}
 
+		/**
+		* Returns true if the ball is within the goalkeeper's target range. If so, the keeper is able
+		* to trap the ball.
+		*
+		* @return {Boolean} Whether the ball is within the keeper's target range or not.
+		*/
+		isBallWithinKeeperRange() {
+
+			const ball = this.team.ball;
+
+			return this.position.squaredDistanceTo( ball.position ) < CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ;
+
+		}
+
+		/**
+		* Returns true if the ball is within the goalkeeper's interception range. If so, the keeper will
+		* start to pursuit the ball.
+		*
+		* @return {Boolean} Whether the ball is within the keeper's interception range or not.
+		*/
 		isBallWithinRangeForIntercept() {
 
 			const ball = this.team.ball;
@@ -60645,6 +61168,11 @@
 
 		}
 
+		/**
+		* Returns true if the goalkeeper is too far away from the goalmouth.
+		*
+		* @return {Boolean} Whether the goalkeeper is too far away from the goalmouth or not.
+		*/
 		isTooFarFromGoalMouth() {
 
 			this.getRearInterposeTarget( _target$3 );
@@ -60654,15 +61182,16 @@
 		}
 
 		/**
-		 * This method is called by the "interpose" state to determine the spot
-		 * along the goalmouth which will act as one of the interpose targets
-		 * (the other is the ball). The specific point at the goal line that
-		 * the keeper is trying to cover is flexible and can move depending on
-		 * where the ball is on the field. To achieve this we just scale the
-		 * ball's z value by the ratio of the goal width to playing field height.
-		 *
-		 * @returns {Vector3} The interpose target.
-		 */
+		* This method is called by the TendGoalState to determine the spot
+		* along the goalmouth which will act as one of the interpose targets
+		* (the other is the ball). The specific point at the goal line that
+		* the keeper is trying to cover is flexible and can move depending on
+		* where the ball is on the field. To achieve this we just scale the
+		* ball's z value by the ratio of the goal width to playing field height.
+		*
+		* @param {Vector3} force - The interpose target.
+		* @returns {Vector3} The interpose target.
+		*/
 		getRearInterposeTarget( target ) {
 
 			const pitch = this.pitch;
@@ -61646,7 +62175,7 @@
 
 			// ground
 
-			const groundGeometry = new PlaneBufferGeometry( 75, 75 );
+			const groundGeometry = new PlaneBufferGeometry( 250, 250 );
 			groundGeometry.rotateX( Math.PI * - 0.5 );
 			const groundMaterial = new MeshBasicMaterial( { color: new Color( 0xdb8d6e ).convertSRGBToLinear(), depthWrite: false } );
 			const groundMesh = new Mesh( groundGeometry, groundMaterial );
@@ -61949,10 +62478,6 @@
 	}
 
 	var world = new World();
-
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
 
 	world.init();
 

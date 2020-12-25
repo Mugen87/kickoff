@@ -27,15 +27,15 @@ export const TEAM_STATES = {
 };
 export const CONFIG = {
 	GOALKEEPER_IN_TARGET_RANGE: 0.5, // the goalkeeper has to be this close to the ball to be able to interact with it
-	GOALKEEPER_INTERCEPT_RANGE: 3, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
+	GOALKEEPER_INTERCEPT_RANGE: 4, // when the ball becomes within this distance of the goalkeeper he changes state to intercept the ball
 	GOALKEEPER_MIN_PASS_DISTANCE: 2, // // the minimum distance a player must be from the goalkeeper before it will pass the ball
 	GOALKEEPER_TENDING_DISTANCE: 2, // this is the distance the keeper puts between the back of the net and the ball when using the interpose steering behavior
 	PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR: 0.5, // this is the chance that a player will receive a pass using the "arrive" steering behavior, rather than "pursuit"
 	PLAYER_CHANCE_ATTEMPT_POT_SHOT: 0.005, // the chance a player might take a random pot shot at the goal
-	PLAYER_COMFORT_ZONE: 3, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
-	PLAYER_IN_TARGET_RANGE: 0.5, // the player has to be this close to the ball to be able to interact with it
+	PLAYER_COMFORT_ZONE: 2.5, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
+	PLAYER_IN_TARGET_RANGE: 0.25, // the player has to be this close to its steering target to be considered as arrived
 	PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
-	PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it. The higher the value this gets, the easier it gets to tackle.
+	PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it
 	PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
 	PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
 	PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
