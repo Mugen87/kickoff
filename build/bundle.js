@@ -59985,7 +59985,7 @@
 
 			// if the best supporting spot changes, change the steering target
 
-			if ( team.getSupportPosition().equals( player.steeringTarget ) ) {
+			if ( team.getSupportPosition().equals( player.steeringTarget ) === false ) {
 
 				player.steeringTarget.copy( team.getSupportPosition() );
 
