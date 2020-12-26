@@ -14,9 +14,23 @@ class AssetManager {
 	*/
 	constructor() {
 
+		/**
+		* A map that contains all textures of the app.
+		* @type {Map<String,Texture>}
+		*/
 		this.textures = new Map();
 
+		/**
+		* The loading manager. Used to identify the moment when
+		* all resources are ready.
+		* @type {LoadingManager}
+		*/
 		this.loadingManager = new LoadingManager();
+
+		/**
+		* Used for loading textures.
+		* @type {TextureLoader}
+		*/
 		this.textureLoader = new TextureLoader( this.loadingManager );
 
 	}

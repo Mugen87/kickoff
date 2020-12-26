@@ -31,7 +31,7 @@ class Pitch extends GameEntity {
 		/**
 		* Represents the walls of the soccer pitch. The ball will
 		* collide against these walls so it can leave the playing area.
-		* @type {Array.<Plane>}
+		* @type {Array<Plane>}
 		*/
 		this.walls = [
 			new Plane( new Vector3( 0, 0, - 1 ), 7.5 ), // top
@@ -90,7 +90,7 @@ class Pitch extends GameEntity {
 
 		/**
 		* Holds the regions of the soccer pitch.
-		* @type {Array.<Region>}
+		* @type {Array<Region>}
 		*/
 		this.regions = [];
 

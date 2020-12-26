@@ -39,7 +39,7 @@ class SupportSpotCalculator {
 
 		/**
 		* Holds all possible supporting spots of a team.
-		* @type {Array.<Vector3>}
+		* @type {Array<Vector3>}
 		*/
 		this._spots = [];
 
