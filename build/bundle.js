@@ -60208,7 +60208,7 @@
 
 			}
 
-			// If the player has "arrived" at the steering target he should wait and turn to face the ball.
+			// If the player has "arrived" at the steering target, he should wait.
 
 			if ( player.atTarget() ) {
 
@@ -60220,13 +60220,7 @@
 				pursuitBehavior.evader = null;
 				pursuitBehavior.active = false;
 
-				player.rotateTo( ball.position, player.currentDelta );
-
 				player.velocity.set( 0, 0, 0 );
-
-			} else {
-
-				player.rotateTo( player.steeringTarget, player.currentDelta );
 
 			}
 
@@ -60924,9 +60918,9 @@
 
 			super.update( delta );
 
-			// in certain states field player should always focus the ball (in others it might be the steering target)
+			// In most states field players should focus the ball. In others (RETURN_HOME and SUPPORT_ATTACKER) it is better to focus the steering target.
 
-			if ( this.stateMachine.in( FIELDPLAYER_STATES.CHASE_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.DRIBBLE ) || this.stateMachine.in( FIELDPLAYER_STATES.KICK_BALL ) || this.stateMachine.in( FIELDPLAYER_STATES.WAIT ) ) {
+			if ( this.stateMachine.in( FIELDPLAYER_STATES.RETURN_HOME ) === false && this.stateMachine.in( FIELDPLAYER_STATES.SUPPORT_ATTACKER ) === false ) {
 
 				this.rotateTo( this.team.ball.position, delta );
 

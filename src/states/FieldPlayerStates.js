@@ -415,7 +415,7 @@ class ReceiveBallState extends State {
 
 		}
 
-		// If the player has "arrived" at the steering target he should wait and turn to face the ball.
+		// If the player has "arrived" at the steering target, he should wait.
 
 		if ( player.atTarget() ) {
 
@@ -427,13 +427,7 @@ class ReceiveBallState extends State {
 			pursuitBehavior.evader = null;
 			pursuitBehavior.active = false;
 
-			player.rotateTo( ball.position, player.currentDelta );
-
 			player.velocity.set( 0, 0, 0 );
-
-		} else {
-
-			player.rotateTo( player.steeringTarget, player.currentDelta );
 
 		}
 
