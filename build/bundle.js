@@ -59655,12 +59655,15 @@
 	}
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* The global state of the team.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class GlobalState extends State {
 
 		onMessage( team, telegram ) {
+
+			// This state is only used for processing messages.
 
 			switch ( telegram.message ) {
 
@@ -59680,22 +59683,38 @@
 
 	}
 
+	/**
+	* In this state the team tries to make a goal.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class AttackingState extends State {
 
 		enter( team ) {
 
+			// Set up the player's new home regions.
+
 			team.setupTeamPositions();
+
+			// If a player is in either the WAIT or RETURN_HOME states, its
+			// steering target must be updated to that of its new home region to
+			// enable it to move into the correct position.
+
 			team.updateSteeringTargetOfPlayers();
 
 		}
 
 		execute( team ) {
 
+			// If this team is no longer in control, change to defending.
+
 			if ( team.inControl() === false ) {
 
 				team.stateMachine.changeTo( TEAM_STATES.DEFENDING );
 
 			}
+
+			// Compute the best position for any supporting attacker to move to.
 
 			team.computeBestSupportingPosition();
 
@@ -59709,6 +59728,11 @@
 
 	}
 
+	/**
+	* In this state the team tries to defend its goal.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class DefendingState extends State {
 
 		enter( team ) {
@@ -59720,6 +59744,8 @@
 
 		execute( team ) {
 
+			// If this team gets control over the ball, change to attacking.
+
 			if ( team.inControl() ) {
 
 				team.stateMachine.changeTo( TEAM_STATES.ATTACKING );
@@ -59730,6 +59756,11 @@
 
 	}
 
+	/**
+	* In this state the team prepares for kickoff.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class PrepareForKickOffState extends State {
 
 		enter( team ) {
@@ -59738,6 +59769,8 @@
 			team.playerClosestToBall = null;
 			team.controllingPlayer = null;
 			team.supportingPlayer = null;
+
+			// send all players to their default regions
 
 			team.returnAllFieldPlayersToHome( true );
 
@@ -59761,10 +59794,6 @@
 
 	}
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _kickForce = new Vector3$1();
 	const _shootTarget = new Vector3$1();
 	const _facingDirection = new Vector3$1();
@@ -59772,11 +59801,18 @@
 	const _rotation = new Quaternion$1();
 	const _toBall = new Vector3$1();
 
+	/**
+	* The global state of the field player.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class GlobalState$1 extends State {
 
 		execute( player ) {
 
-			if ( player.isBallWithinReceivingRange() && player.isControllingPlayer() ) {
+			// If a player is in possession and close to the ball reduce his max speed.
+
+			if ( player.isControllingPlayer() && player.isBallWithinReceivingRange() ) {
 
 				player.maxSpeed = CONFIG.PLAYER_MAX_SPEED_WITH_BALL;
 
@@ -59796,6 +59832,8 @@
 
 					player.setDefaultHomeRegion();
 
+					// It's important to immediately update the steering target so it reflects the new home position.
+
 					player.steeringTarget.copy( player.getHomeRegion().center );
 
 					player.stateMachine.changeTo( FIELDPLAYER_STATES.RETURN_HOME );
@@ -59803,6 +59841,9 @@
 					return true;
 
 				case MESSAGE.PASS_TO_ME:
+
+					// If there is already a receiving player or the ball is not within kicking range,
+					// this player cannot pass the ball to the player making the request.
 
 					if ( player.team.receivingPlayer !== null || player.isBallWithinKickingRange() === false ) {
 
@@ -59813,13 +59854,19 @@
 					const requester = telegram.data.requester;
 					const ball = player.team.ball;
 
+					// Make pass.
+
 					_kickForce.subVectors( requester.position, ball.position ).normalize().multiplyScalar( CONFIG.PLAYER_MAX_PASSING_FORCE );
 
 					ball.kick( _kickForce );
 
-					player.team.sendMessage( requester, MESSAGE.RECEIVE_BALL, 0, { target: requester.position.clone() } ); // TODO: Call sendMessage on game entity (currently not possible because of missing manager reference)
+					// Let the receiver know a pass is coming.
+
+					player.team.sendMessage( requester, MESSAGE.RECEIVE_BALL, 0, { target: requester.position.clone() } );
 
 					player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
+
+					// Update supporting attacker.
 
 					player.team.findSupport();
 
@@ -59851,8 +59898,11 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the field player will try to seek to the ball position.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class ChaseBallState extends State {
 
 		enter( player ) {
@@ -59865,7 +59915,7 @@
 
 		execute( player ) {
 
-			// if the ball is within kicking range the player changes state to "KICK_BALL"
+			// If the ball is within kicking range the player changes state to KICK_BALL.
 
 			if ( player.isBallWithinKickingRange() ) {
 
@@ -59875,7 +59925,7 @@
 
 			}
 
-			// if the player is the closest player to the ball then he should keep chasing it
+			// If the player is the closest player to the ball then he should keep chasing it.
 
 			if ( player.isClosestTeamMemberToBall() ) {
 
@@ -59886,7 +59936,7 @@
 
 			}
 
-			// if the player is not closest to the ball anymore, he should return back  to his home region and wait for another opportunity
+			// If the player is not closest to the ball anymore, he should return back to his home region and wait for another opportunity.
 
 			player.stateMachine.changeTo( FIELDPLAYER_STATES.RETURN_HOME );
 
@@ -59902,8 +59952,11 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the ball controlling field player moves to the opposing goal.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class DribbleState extends State {
 
 		enter( player ) {
@@ -59921,18 +59974,18 @@
 
 			const dot = _facingDirection.dot( _goalDirection );
 
-			// if the ball is between the player and the home goal, it needs to
+			// If the ball is between the player and the home goal, it needs to
 			// swivel the ball around by doing multiple small kicks and turns until
-			// the player is facing in the correct direction
+			// the player is facing in the correct direction.
 
 			if ( dot < 0 ) {
 
-				// the player's heading is going to be rotated by a small amount
-				// (Pi/4) and then the ball will be kicked in that direction
+				// The player's heading is going to be rotated by a small amount
+				// (Pi/4) and then the ball will be kicked in that direction.
 
-				// calculate the sign (+/-) of the angle between the player heading
+				// Calculate the sign (+/-) of the angle between the player heading
 				// and the facing direction of the goal so that the player rotates
-				// around in the correct direction
+				// around in the correct direction.
 
 				const sign = ( ( _facingDirection.x * _goalDirection.z ) < ( _facingDirection.z * _goalDirection.x ) ) ? 1 : - 1;
 
@@ -59942,13 +59995,13 @@
 
 				_kickForce.copy( _facingDirection ).multiplyScalar( CONFIG.PLAYER_MAX_DRIBBLE_AND_TURN_FORCE );
 
-				// kick the ball with a lower force if the player turns around
+				// Kick the ball with a lower force if the player turns around.
 
 				ball.kick( _kickForce );
 
 			} else {
 
-				// kick the ball down the field
+				// Kick the ball down the field.
 
 				_kickForce.copy( _goalDirection ).multiplyScalar( CONFIG.PLAYER_MAX_DRIBBLE_FORCE );
 
@@ -59956,7 +60009,7 @@
 
 			}
 
-			// the player has kicked the ball so he must now change state to follow it
+			// The player has kicked the ball so he must now change state to follow it.
 
 			player.stateMachine.changeTo( FIELDPLAYER_STATES.CHASE_BALL );
 
@@ -59964,15 +60017,18 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the player kicks the ball. The player can shot a the goal or pass to a team member.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class KickBallState extends State {
 
 		enter( player ) {
 
 			player.team.setControl( player );
 
-			// the player can only make a specific amount of kicks per second
+			// The player can only make a specific amount of kicks per second.
 
 			if ( player.isReadyForNextKick() === false ) {
 
@@ -59988,13 +60044,13 @@
 			const ball = team.ball;
 			const pitch = player.pitch;
 
-			// calculate the dot product of the vector pointing to the ball and the player's heading
+			// Compute the dot product of the vector pointing to the ball and the player's heading.
 
 			_toBall.subVectors( ball.position, player.position ).normalize();
 			player.getDirection( _facingDirection );
 			const dot = _toBall.dot( _facingDirection );
 
-			// cannot kick the ball if the goalkeeper is in possession or if it is behind the player
+			// Cannot kick the ball if the goalkeeper is in possession or if it is behind the player
 			// or if there is already an assigned receiver. So just continue chasing the ball.
 
 			if ( pitch.isGoalKeeperInBallPossession || ( dot < 0 ) || team.receivingPlayer !== null ) {
@@ -60007,28 +60063,33 @@
 
 			/* attempt a shot at the goal */
 
-			 // the dot product is used to adjust the shooting force. The more
-			// directly the ball is ahead, the more forceful the kick
+			// The dot product is used to adjust the shooting force. The more
+			// directly the ball is ahead, the more forceful the kick.
 
 			let power = CONFIG.PLAYER_MAX_SHOOTING_FORCE * dot;
 
+			// If it is determined that the player could score a goal from this position OR if he should just kick the ball anyway,
+			// the player will  attempt to make the shot.
+
 			if ( ( team.canShoot( ball.position, power, _shootTarget ) ) || ( Math.random() < CONFIG.PLAYER_CHANCE_ATTEMPT_POT_SHOT ) ) {
 
-				// add some noise to the kick. We don't want players who are too accurate!
+				// Add some noise to the kick. Avoid players who are too accurate.
 
 				player.addNoise( _shootTarget );
 
-				// this is the direction the ball will be kicked in
+				// This is the direction the ball will be kicked in.
 
 				_kickForce.subVectors( _shootTarget, ball.position ).normalize().multiplyScalar( power );
 
-				// do the kick!
+				// Kick.
 
 				ball.kick( _kickForce );
 
-				// change state
+				// Change state
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
+
+				// Update supporting attacker.
 
 				team.findSupport();
 
@@ -60045,38 +60106,37 @@
 				target: new Vector3$1()
 			};
 
-			// test if there are any potential candidates available to receive a pass
+			// Test if there are any potential candidates available to receive a pass.
 
 			if ( player.isThreatened() && team.findPass( player, power, CONFIG.PLAYER_MIN_PASS_DISTANCE, pass ) ) {
 
-				// add some noise to the kick
-
 				player.addNoise( pass.target );
-
-				// this is the direction the ball will be kicked in
 
 				_kickForce.subVectors( pass.target, ball.position ).normalize().multiplyScalar( power );
 
-				// do the kick!
-
 				ball.kick( _kickForce );
 
-				// let the receiving player know the ball's coming at him
+				// Let the receiving player know the ball's coming at him.
 
 				team.sendMessage( pass.receiver, MESSAGE.RECEIVE_BALL, 0, { target: pass.target } );
 
-				// the player should wait at his current position unless instructed otherwise
+				// The player should wait at his current position unless instructed otherwise.
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
+
+				// Update supporting attacker.
 
 				team.findSupport();
 
 			} else {
 
-				// cannot shoot or pass, so dribble the ball upfield
-				team.findSupport();
+				// Cannot shoot or pass, so dribble the ball upfield.
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.DRIBBLE );
+
+				// Update supporting attacker.
+
+				team.findSupport();
 
 			}
 
@@ -60084,8 +60144,11 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the field player receives the ball.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class ReceiveBallState extends State {
 
 		enter( player ) {
@@ -60103,7 +60166,7 @@
 			// PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR, whether or not an opposing
 			// player is close to the receiving player, and whether or not the receiving
 			// player is in the opponents "hot region" (the third of the pitch closest
-			// to the opponent's goal)
+			// to the opponent's goal).
 
 			if ( ( player.inHotRegion() || Math.random() > CONFIG.PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR ) &&
 				player.team.isOpponentWithinRadius( player, CONFIG.PLAYER_PASS_THREAD_RADIUS ) ) {
@@ -60124,8 +60187,8 @@
 
 		execute( player ) {
 
-			// if the ball comes close enough to the player or if his team lose
-			// control he should change state to chase the ball
+			// If the ball comes close enough to the player or if his team lose
+			// control he should change state to chase the ball.
 
 			if ( player.isBallWithinReceivingRange() || player.team.inControl() === false ) {
 
@@ -60134,7 +60197,7 @@
 
 			}
 
-			// if "pursuit" is active, it's necessary to update the target position
+			// If "pursuit" is active, it's necessary to update the target position.
 
 			const pursuitBehavior = player.steering.behaviors[ 2 ];
 			const ball = player.team.ball;
@@ -60145,7 +60208,7 @@
 
 			}
 
-			// if the player has "arrived" at the steering target he should wait and turn to face the ball
+			// If the player has "arrived" at the steering target he should wait and turn to face the ball.
 
 			if ( player.atTarget() ) {
 
@@ -60185,8 +60248,11 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the field player will return to his home region.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class ReturnHomeState extends State {
 
 		enter( player ) {
@@ -60195,7 +60261,7 @@
 			arriveBehavior.target = player.steeringTarget;
 			arriveBehavior.active = true;
 
-			// ensure the player's steering target is within the home region
+			// Ensure the player's steering target is within the home region.
 
 			if ( player.getHomeRegion().isInside( player.steeringTarget, true ) === false ) {
 
@@ -60211,9 +60277,8 @@
 
 			if ( pitch.isPlaying ) {
 
-				// if the ball is nearer this player than any other team member &&
-				// there is not an assigned receiver && the goalkeeper does not has
-				// the ball, go chase it
+				// If the ball is nearer this player than any other team member &&
+				// there is not an assigned receiver && the goalkeeper does not have the ball, go chase it.
 
 				if ( player.isClosestTeamMemberToBall() && player.team.receivingPlayer === null && pitch.isGoalKeeperInBallPossession === false ) {
 
@@ -60225,9 +60290,8 @@
 
 			}
 
-			// if game is on and the player is close enough to home, change state to
-			// wait and set the player target to his current position (so that if he
-			// gets jostled out of position he can move back to it)
+			// If game is on and the player is close enough to home, change state to
+			// wait and set the player target to his current position.
 
 			if ( pitch.isPlaying && player.inHomeRegion() ) {
 
@@ -60235,8 +60299,8 @@
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
 
-				// if game is not on the player must return much closer to the center of
-				// his home region
+				// If game is not on the player must return much closer to the center of
+				// his home region.
 
 			} else if ( pitch.isPlaying === false && player.atTarget() ) {
 
@@ -60258,8 +60322,11 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the field player will try to support to the attacker.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class SupportAttackerState extends State {
 
 		enter( player ) {
@@ -60276,7 +60343,7 @@
 
 			const team = player.team;
 
-			// if his team loses control go back home
+			// If his team loses control go back home.
 
 			if ( team.inControl() === false ) {
 
@@ -60285,7 +60352,7 @@
 
 			}
 
-			// if the player becomes suddenly the closest player to the ball AND there is no receiving player then chase the ball
+			// If the player becomes suddenly the closest player to the ball AND there is no receiving player then chase the ball.
 
 			if ( player.isClosestTeamMemberToBall() && player.team.receivingPlayer === null ) {
 
@@ -60294,7 +60361,7 @@
 
 			}
 
-			// if the best supporting spot changes, change the steering target
+			// If the best supporting spot changes, change the steering target.
 
 			if ( team.getSupportPosition().equals( player.steeringTarget ) === false ) {
 
@@ -60305,7 +60372,7 @@
 
 			}
 
-			// if this player has a shot at the goal AND the attacker can pass the ball to him the attacker should pass the ball to this player
+			// If this player has a shot at the goal AND the attacker can pass the ball to him the attacker should pass the ball to this player.
 
 			if ( team.canShoot( player.position, CONFIG.PLAYER_MAX_SHOOTING_FORCE, _shootTarget ) ) {
 
@@ -60313,19 +60380,20 @@
 
 			}
 
-			// if this player is located at the support spot and his team still have
-			// possession, he should remain still and turn to face the ball
+			// If this player is located at the support spot and his team still have
+			// possession, he should remain still and turn to face the ball.
 
 			if ( player.atTarget() ) {
 
 				const arriveBehavior = player.steering.behaviors[ 1 ];
 				arriveBehavior.active = false;
 
-				// the player should keep his eyes on the ball!
+				// The player should keep his eyes on the ball.
+
 				player.rotateTo( team.ball.position, player.currentDelta );
 				player.velocity.set( 0, 0, 0 );
 
-				// if not threatened by another player request a pass
+				// If not threatened by another player request a pass.
 
 				if ( player.isThreatened() === false ) {
 
@@ -60353,8 +60421,11 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the field player will wait in his home region.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class WaitState extends State {
 
 		execute( player ) {
@@ -60364,8 +60435,8 @@
 
 			const arriveBehavior = player.steering.behaviors[ 1 ];
 
-			// if players are in this state and the team strategy changes, it is necessary
-			// that the player moves to an updated steering target.
+			// If players are in this state and the team strategy changes, it is necessary
+			// that the players moves to an updated steering target.
 
 			if ( player.atTarget() === false ) {
 
@@ -60383,9 +60454,9 @@
 
 			if ( pitch.isPlaying ) {
 
-				// if the ball is nearer to this player than any other team member AND
+				// If the ball is nearer to this player than any other team member AND
 				// there is not an assigned receiver AND neither goalkeeper has the
-				// ball, go chase it
+				// ball, go chase it.
 
 				if ( player.isClosestTeamMemberToBall() && team.receivingPlayer === null && pitch.isGoalKeeperInBallPossession === false ) {
 
@@ -60396,7 +60467,7 @@
 
 			}
 
-			// if this player's team is controlling AND this player is not the
+			// If this player's team is controlling AND this player is not the
 			// attacker AND is further up the field than the attacker AND if the controlling player
 			// is not the goalkeeper he should request a pass
 
@@ -60474,12 +60545,6 @@
 			* @type Number
 			*/
 			this.homeRegionId = defaultRegionId;
-
-			/**
-			* The maximum speed of the ball.
-			* @type Number
-			*/
-			this.maxSpeed = 2;
 
 			/**
 			* A reference to the pitch.
@@ -60882,16 +60947,19 @@
 
 	}
 
-	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
 	const _target$2 = new Vector3$1();
 	const _displacement$1 = new Vector3$1();
 
+	/**
+	* The global state of the goalkeeper.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class GlobalState$2 extends State {
 
 		onMessage( goalkeeper, telegram ) {
+
+			// This state is only used for processing messages.
 
 			switch ( telegram.message ) {
 
@@ -60917,8 +60985,12 @@
 
 	}
 
-	//
-
+	/**
+	* In this state the goalkeeper simply returns back to the center of the goal region
+	* before changing state back to TEND_GOAL.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class ReturnHomeState$1 extends State {
 
 		enter( goalkeeper ) {
@@ -60933,6 +61005,8 @@
 		}
 
 		execute( goalkeeper ) {
+
+			// If close enough to home or the opponents get control over the ball, change state to TEND_GOAL.
 
 			if ( goalkeeper.inHomeRegion() || goalkeeper.team.inControl() === false ) {
 
@@ -60952,6 +61026,13 @@
 
 	}
 
+	/**
+	* This is the main state for the goalkeeper. When in this state he will move left to right across the goalmouth
+	* using an interpose-like steering to put himself between the ball and the back of the net. If the ball comes within
+	* the "goalkeeper range", he moves out of the goalmouth to attempt to intercept it.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class TendGoalState extends State {
 
 		enter( goalkeeper ) {
@@ -60966,13 +61047,15 @@
 
 			const ball = goalkeeper.team.ball;
 
+			// update steering
+
 			goalkeeper.getRearInterposeTarget( _target$2 );
 
 			_displacement$1.subVectors( ball.position, _target$2 ).normalize().multiplyScalar( CONFIG.GOALKEEPER_TENDING_DISTANCE );
 
 			goalkeeper.steeringTarget.copy( _target$2 ).add( _displacement$1 );
 
-			//
+			// If the ball comes in range the keeper traps it and then changes state to put the ball back in play.
 
 			if ( goalkeeper.isBallWithinKeeperRange() ) {
 
@@ -60986,6 +61069,9 @@
 
 			}
 
+			// If the keeper has ventured too far away from the goalline and there is no threat from the
+			// opponents he should move back towards it.
+
 			if ( goalkeeper.isTooFarFromGoalMouth() && goalkeeper.team.inControl() ) {
 
 				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.RETURN_HOME );
@@ -60993,6 +61079,8 @@
 				return;
 
 			}
+
+			// If ball is within a predefined distance, the keeper moves out from position to try to intercept it.
 
 			if ( goalkeeper.isBallWithinRangeForIntercept() && goalkeeper.team.inControl() === false ) {
 
@@ -61014,6 +61102,12 @@
 
 	}
 
+	/**
+	* In this state the goalkeeper will attempt to intercept the ball using the pursuit steering behavior,
+	* but he only does so so long as he remains within his home region.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class InterceptBallState extends State {
 
 		enter( goalkeeper ) {
@@ -61026,6 +61120,9 @@
 
 		execute( goalkeeper ) {
 
+			// If the goalkeeper moves too far away from the goal he should return to his home region
+			// UNLESS he is the closest player to the ball, in which case, he should keep trying to intercept it.
+
 			if ( goalkeeper.isTooFarFromGoalMouth() && goalkeeper.isClosestPlayerOnPitchToBall() === false ) {
 
 				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.RETURN_HOME );
@@ -61033,6 +61130,8 @@
 				return;
 
 			}
+
+			// If the ball becomes in range of the goalkeeper's hands he traps the ball and puts it back in play.
 
 			if ( goalkeeper.isBallWithinKeeperRange() ) {
 
@@ -61059,11 +61158,20 @@
 
 	}
 
+	/**
+	* In this state the goalkeeper will put the ball back in play.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class PutBallBackInPlayState extends State {
 
 		enter( goalkeeper ) {
 
+			// Let the team know that the keeper is in control.
+
 			goalkeeper.team.setControl( goalkeeper );
+
+			// Send all players home.
 
 			goalkeeper.team.returnAllFieldPlayersToHome();
 			goalkeeper.team.opposingTeam.returnAllFieldPlayersToHome();
@@ -61079,6 +61187,8 @@
 
 			const team = goalkeeper.team;
 
+			// Test if there are players further forward on the field we might be able to pass to. If so, make a pass.
+
 			if ( team.findPass( goalkeeper, CONFIG.PLAYER_MAX_PASSING_FORCE, CONFIG.GOALKEEPER_MIN_PASS_DISTANCE, pass ) !== null ) {
 
 				const ball = team.ball;
@@ -61086,17 +61196,27 @@
 				const force = new Vector3$1();
 				force.subVectors( pass.target, ball.position ).normalize().multiplyScalar( CONFIG.PLAYER_MAX_PASSING_FORCE );
 
+				// Make the pass.
+
 				ball.kick( force );
+
+				// Goalkeeper no longer has ball.
 
 				goalkeeper.pitch.isGoalKeeperInBallPossession = false;
 
-				team.sendMessage( pass.receiver, MESSAGE.RECEIVE_BALL, 0, { target: pass.target } ); // TODO: Call sendMessage on game entity (currently not possible because of missing manager reference)
+				// Let the receiving player know the ball's coming at him.
+
+				team.sendMessage( pass.receiver, MESSAGE.RECEIVE_BALL, 0, { target: pass.target } );
+
+				// Go back to tending the goal.
 
 				goalkeeper.stateMachine.changeTo( GOALKEEPER_STATES.TEND_GOAL );
 
 				return;
 
 			}
+
+			// Ensure the goalkeeper stays still when he has the ball.
 
 			goalkeeper.velocity.set( 0, 0, 0 );
 
@@ -61426,6 +61546,19 @@
 
 		}
 
+		/**
+		* Given a ball position, a kicking power and a reference to a target vector
+		* this method will sample random positions along the opponent's goalmouth and
+		* check to see if a goal can be scored if the ball was to be kicked in that
+		* direction with the given power. If a possible shot is found, the method
+		* will immediately return true, with the target position stored in the target
+		* vector.
+		*
+		* @param {Vector3} ballPosition - The position of the ball.
+		* @param {Number} kickingPower - The power of the shoot.
+		* @param {Vector3} shootTarget - The target vector.
+		* @returns {boolean} Whether a shoot on the opposing goal is possible or not?
+		*/
 		canShoot( ballPosition, kickingPower, shootTarget ) {
 
 			const halfWidth = this.opposingGoal.width / 2;
@@ -61434,6 +61567,8 @@
 
 				const ball = this.ball;
 
+				// Choose a random position along the opponent's goalmouth.
+
 				shootTarget.copy( this.opposingGoal.position );
 
 				const minZ = this.opposingGoal.position.z - halfWidth + ball.boundingRadius;
@@ -61441,7 +61576,11 @@
 
 				shootTarget.z = MathUtils$1.randFloat( minZ, maxZ ); // random
 
+				// Make sure striking the ball with the given power is enough to drive the ball over the goal line.
+
 				const time = ball.timeToCoverDistance( ballPosition, shootTarget, kickingPower );
+
+				// If it is, this shot is then tested to see if any of the opponents can intercept it.
 
 				if ( time >= 0 ) {
 
@@ -61504,6 +61643,17 @@
 
 		}
 
+		/**
+		* The best pass is considered to be the pass that cannot be intercepted by an
+		* opponent and that is as far forward of the receiver as possible. If no best pass
+		* is found, null is returned.
+		*
+		* @param {Player} passer - The player who passes the ball.
+		* @param {Number} passPower - The power of the pass.
+		* @param {Number} minPassingDistance - The minimum distance of the pass.
+		* @param {Object} pass - The pass object holding receiver and target.
+		* @returns {Pass} The best possible pass.
+		*/
 		findPass( passer, passPower, minPassingDistance, pass ) {
 
 			let minDistance = Infinity;
@@ -61518,6 +61668,8 @@
 				const player = players[ i ];
 
 				const squaredDistanceToReceiver = passer.position.squaredDistanceTo( player.position );
+
+				// Make sure the potential receiver is not this player and that it is further away than the minimum pass distance.
 
 				if ( player !== passer && squaredDistanceToReceiver >= minPassingSquaredDistance ) {
 
@@ -61552,6 +61704,9 @@
 
 		}
 
+		/**
+		* The method should ensure that attacking players always have assistance by a supporting player.
+		*/
 		findSupport() {
 
 			if ( this.supportingPlayer === null ) {
@@ -61559,6 +61714,8 @@
 				this.supportingPlayer = this.computeBestSupportingAttacker();
 
 				if ( this.supportingPlayer !== null ) {
+
+					// let the player know that he should support the attacker
 
 					this.sendMessage( this.supportingPlayer, MESSAGE.SUPPORT_ATTACKER );
 
@@ -61570,11 +61727,17 @@
 
 			const bestSupportPlayer = this.computeBestSupportingAttacker();
 
+			// check if the best supporting player has changed over time
+
 			if ( bestSupportPlayer !== null && bestSupportPlayer !== this.supportingPlayer ) {
+
+				// if so, instruct the older supporting player to return home
 
 				this.sendMessage( this.supportingPlayer, MESSAGE.RETURN_HOME );
 
 				this.supportingPlayer = bestSupportPlayer;
+
+				// and inform the new supporting attacker
 
 				this.sendMessage( this.supportingPlayer, MESSAGE.SUPPORT_ATTACKER );
 
@@ -61630,15 +61793,30 @@
 
 		}
 
+		/**
+		* Tests a pass from position "start" to position "target" against each member of
+		* the opposing team. Returns true if the pass can be made without getting intercepted.
+		*
+		* @param {Vector3} start - The start position of the pass.
+		* @param {Vector3} target - The target position of the pass.
+		* @param {Player} receiver - The receiver of the pass.
+		* @param {Number} passingForce - The force of the pass.
+		* @returns {Boolean} Whether the pass be intercepted by one of the opposing players or not.
+		*/
 		isPassSafeFromAllOpponents( start, target, receiver, passingForce ) {
 
-			const opponents = this.opposingTeam.children;
+			// Compute a matrix that will be used to transform opponent players into the
+			// local coordinate system of the pass.
 
 			_direction$1.subVectors( target, start ).normalize();
 			_rotation$1.lookAt( _forward, _direction$1, _up );
 
 			_matrix$1.compose( start, _rotation$1, _scale$1 );
 			_matrix$1.getInverse( _inverseMatrix$3 );
+
+			// check all players of the opposing team
+
+			const opponents = this.opposingTeam.children;
 
 			for ( let i = 0, l = opponents.length; i < l; i ++ ) {
 
@@ -61881,6 +62059,18 @@
 
 		}
 
+		/**
+		* Given a point P and a circle of radius R centered at C this function
+		* determines the two points on the circle that intersect with the tangents from
+		* P to the circle. Returns false if P is within the circle.
+		*
+		* @param {Vector3} C - The center of the circle.
+		* @param {Number} R - The radius of the circle.
+		* @param {Vector3} P - The origin point.
+		* @param {Vector3} T1 - The first tangent.
+		* @param {Vector3} T2 - The second tangent.
+		* @returns {Boolean} Whether point P lies inside the circle or not?
+		*/
 		_computeTangentPoints( C, R, P, T1, T2 ) {
 
 			_toPoint.subVectors( P, C );
@@ -61890,6 +62080,7 @@
 			if ( squaredlength <= RSq ) {
 
 				// P is inside or on the circle
+
 				return false;
 
 			}
@@ -61906,6 +62097,21 @@
 
 		}
 
+		/**
+		* Three potential passes are calculated. One directly toward the receiver's
+		* current position and two that are the tangents from the ball position to the
+		* circle of radius "range" from the receiver. These passes are then tested to
+		* see if they can be intercepted by an opponent and to make sure they terminate
+		* within the playing area. If all the passes are invalidated the method
+		* returns false. Otherwise the method returns the pass that takes the ball
+		* closest to the opponent's goal area.
+		*
+		* @param {Player} passer - The player who passes the ball.
+		* @param {Player} receiver - The player who receives the ball.
+		* @param {Number} passPower - The power of the pass.
+		* @param {Vector3} passTarget - The target of the pass.
+		* @returns {Boolean} Whether a pass to the receiver is possible or not.
+		*/
 		_getBestPassToReceiver( passer, receiver, passPower, passTarget ) {
 
 			let result = false;
@@ -61916,11 +62122,20 @@
 
 			const ball = this.ball;
 
+			// First, compute how much time it will take for the ball to reach this receiver, if the receiver was to remain motionless.
+
 			const t = ball.timeToCoverDistance( ball.position, receiver.position, passPower );
+
+			// Return false if the ball cannot reach the receiver after having been kicked with the given power.
 
 			if ( t < 0 ) return false;
 
+			// The maximum distance the receiver can cover in this time scaled by the interception range. This range ensures the receiver can easier
+			// obtain the ball (so the pass is more safe).
+
 			const interceptRange = t * receiver.maxSpeed * 0.2;
+
+			// Now compute the pass targets which are positioned at the intercepts of the tangents from the ball to the receiver's range circle.
 
 			this._computeTangentPoints( receiver.position, interceptRange, ball.position, _tangent1, _tangent2 );
 
@@ -61931,6 +62146,12 @@
 				const pass = _passes[ i ];
 
 				const distanceToGoal = pass.squaredDistanceTo( this.opposingGoal.position );
+
+				// This pass is the best found so far if it is:
+				//
+				// 1. Further upfield than the closest valid pass for this receiver found so far.
+				// 2. Within the playing area.
+				// 3. Cannot be intercepted by any opponents.
 
 				if ( distanceToGoal < minDistance && this.pitch.playingArea.isInside( pass ) && this.isPassSafeFromAllOpponents( ball.position, pass, receiver, passPower ) ) {
 
@@ -61948,11 +62169,23 @@
 
 		}
 
+		/**
+		* Tests if a pass can be intercepted by an opposing player.
+		*
+		* @param {Vector3} start - The start position of the pass.
+		* @param {Vector3} target - The target position of the pass.
+		* @param {Player} receiver - The receiver of the pass.
+		* @param {Player} opponent - The opposing player.
+		* @param {Number} passingForce - The force of the pass.
+		* @param {Matrix4} inverseMatrix - Used to transform the opponent into the pass's local coordinate system.
+		* @returns {Boolean} Whether the pass can be intercepted by an opposing player or not.
+		*/
 		_isPassSafeFromOpponent( start, target, receiver, opponent, passingForce, inverseMatrix ) {
 
 			_localPositionOfOpponent.copy( opponent.position ).applyMatrix4( inverseMatrix );
 
-			// 1. Test
+			// 1. Test: If opponent is behind the ball then pass is considered okay (this is based on the
+			// assumption that the ball is going to be kicked with a velocity greater than the opponent's max velocity).
 
 			if ( _localPositionOfOpponent.z < 0 ) {
 
@@ -61960,9 +62193,13 @@
 
 			}
 
-			// 2. Test
+			// 2. Test: If the opponent is further away than the target we need to consider
+			// if the opponent can reach the position before the receiver.
 
 			if ( start.squaredDistanceTo( target ) < start.squaredDistanceTo( opponent.position ) ) {
+
+				// This condition is here because this method might be called without reference to a receiver.
+				// For example, one may want to find out if a ball can reach a position on the field before an opponent can get to it.
 
 				if ( receiver !== null ) {
 
@@ -61984,13 +62221,15 @@
 
 			}
 
-			// 3. Test
+			// 3. Test: Compute how long it takes the ball to cover the distance to the position orthogonal to the opponents position.
 
 			_endPosition.set( _localPositionOfOpponent.z, 0, 0 );
 
 			const t = this.ball.timeToCoverDistance( _startPosition, _endPosition, passingForce );
 
 			const reach = opponent.maxSpeed * t + this.ball.boundingRadius + opponent.boundingRadius;
+
+			// If the range plus the radius of the opponent and the ball's bounding radius is lower than the opponent's x position, the pass is safe.
 
 			if ( reach < Math.abs( _localPositionOfOpponent.x ) ) {
 
@@ -62005,53 +62244,41 @@
 	}
 
 	/**
-	 * @author Mugen87 / https://github.com/Mugen87
-	 */
-
+	* Class for representing the game environment. Entry point for the application.
+	*
+	* @author {@link https://github.com/Mugen87|Mugen87}
+	*/
 	class World {
 
+		/**
+		* Constructs a new world instance.
+		*/
 		constructor() {
 
-			this.entityManager = new EntityManager();
-			this.time = new Time();
-
-			this.camera = null;
-			this.scene = null;
-			this.renderer = null;
-
+			/**
+			* A reference game's asset manager.
+			* @type AssetManager
+			*/
 			this.assetManager = null;
 
-			this.ui = {
-				goalsBlue: document.getElementById( 'goals-blue' ),
-				goalsRed: document.getElementById( 'goals-red' )
-			};
+			/**
+			* A reference to the perspective camera.
+			* @type PerspectiveCamera
+			*/
+			this.camera = null;
 
+			/**
+			* Whether the debug mode should be active or not.
+			* When activated, it's possible to visually debug various aspect
+			* of the AI via helper objects.
+			* @type Object
+			*/
 			this.debug = true;
 
-			//
-
-			this.pitch = null;
-
-			//
-
-			this.ballMesh = null;
-			this.goalMesh = null;
-			this.pitchMesh = null;
-			this.teamRedMesh = null;
-			this.teamBlueMesh = null;
-
-			//
-
-			this.pitchDimension = {
-				width: 20,
-				height: 15
-			};
-
-			this.goalDimensions = {
-				width: 2,
-				height: 1
-			};
-
+			/**
+			* These debug parameters allow to selectively enable/disable helpers.
+			* @type Object
+			*/
 			this.debugParameter = {
 				'showAxes': false,
 				'showWalls': false,
@@ -62062,6 +62289,74 @@
 				'showStatesRed': false
 			};
 
+			/**
+			* The entity manager of this game.
+			* @type EntityManager
+			*/
+			this.entityManager = new EntityManager();
+
+			/**
+			* The dimensions of the goal.
+			* @type Object
+			*/
+			this.goalDimensions = {
+				width: 2,
+				height: 1
+			};
+
+			/**
+			* A reference to the pitch object.
+			* @type Pitch
+			*/
+			this.pitch = null;
+
+			/**
+			* The dimensions of the pitch.
+			* @type Object
+			*/
+			this.pitchDimension = {
+				width: 20,
+				height: 15
+			};
+
+			/**
+			* A reference to the WebGL renderer.
+			* @type WebGLRenderer
+			*/
+			this.renderer = null;
+
+			/**
+			* A reference to the scene graph.
+			* @type Scene
+			*/
+			this.scene = null;
+
+			/**
+			* The timer used to determine time delta values.
+			* @type Time
+			*/
+			this.time = new Time();
+
+			/**
+			* This object holds references to UI elements that will
+			* be updated over time.
+			* @type Object
+			*/
+			this.ui = {
+				goalsBlue: document.getElementById( 'goals-blue' ),
+				goalsRed: document.getElementById( 'goals-red' )
+			};
+
+			// render components for game entities
+
+			this.ballMesh = null;
+			this.goalMesh = null;
+			this.pitchMesh = null;
+			this.teamRedMesh = null;
+			this.teamBlueMesh = null;
+
+			// helpers
+
 			this._axesHelper = null;
 			this._regionHelpers = [];
 			this._wallHelpers = [];
@@ -62070,9 +62365,14 @@
 			this._statesRedHelpers = [];
 			this._statesBlueHelpers = [];
 
-			//
 
+			/**
+			* Request ID of the animation loop.
+			* @type Number
+			*/
 			this._requestID = null;
+
+			// event listeners and callbacks
 
 			this._startAnimation = startAnimation.bind( this );
 			this._stopAnimation = stopAnimation.bind( this );
@@ -62080,6 +62380,9 @@
 
 		}
 
+		/**
+		* Inits the game environment. Entry point of the application.
+		*/
 		async init() {
 
 			this.assetManager = new AssetManager();
@@ -62100,6 +62403,9 @@
 
 		}
 
+		/**
+		* Updates the state of the user interface.
+		*/
 		refreshUI() {
 
 			const teamBlue = this.pitch.teamBlue;
@@ -62110,6 +62416,9 @@
 
 		}
 
+		/**
+		* Central update loop of the game.
+		*/
 		update() {
 
 			const delta = this.time.update().getDelta();
@@ -62134,6 +62443,12 @@
 
 		}
 
+		/**
+		* Factory method to create the soccer ball of the game.
+		*
+		* @param {Pitch} pitch - A reference to the soccer pitch.
+		* @return {Ball} The created ball.
+		*/
 		_createBall( pitch ) {
 
 			const ball = new Ball( pitch );
@@ -62146,6 +62461,14 @@
 
 		}
 
+		/**
+		* Factory method to create a soccer goal.
+		*
+		* @param {Number} width - The width of the goal.
+		* @param {Number} height - The height of the goal.
+		* @param {Number} color - The color of the team that owns this goal (blue or red).
+		* @return {Goal} The created goal.
+		*/
 		_createGoal( width, height, color ) {
 
 			const goal = new Goal$1( width, height, color );
@@ -62158,6 +62481,14 @@
 
 		}
 
+		/**
+		* Factory method to create a soccer pitch.
+		*
+		* @param {Number} width - The width of the pitch.
+		* @param {Number} height - The height of the pitch.
+		* @param {World} world - A reference to the world.
+		* @return {Pitch} The created pitch.
+		*/
 		_createPitch( width, height, world ) {
 
 			const pitch = new Pitch( width, height, world );
@@ -62170,11 +62501,23 @@
 
 		}
 
+		/**
+		* Factory method to create a soccer team.
+		*
+		* @param {Ball} ball - A reference to the ball.
+		* @param {Pitch} pitch - A reference to the pitch.
+		* @param {Goal} homeGoal - A reference to the home goal.
+		* @param {Goal} opposingGoal - A reference to the opposing goal.
+		* @param {Number} color - The team's color (blue or red).
+		* @return {Team} The created team.
+		*/
 		_createTeam( ball, pitch, homeGoal, opposingGoal, color ) {
 
 			const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
 
 			const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+
+			// Create render components for the players of the team.
 
 			for ( let i = 0, l = team.children.length; i < l; i ++ ) {
 
@@ -62189,6 +62532,9 @@
 
 		}
 
+		/**
+		* Creates visual helpers for debugging the pitch.
+		*/
 		_debugPitch() {
 
 			const pitch = this.pitch;
@@ -62255,6 +62601,13 @@
 
 		}
 
+		/**
+		* Creates visual helpers for debugging a team.
+		*
+		* @param {Team} team - A reference to the team that should be debugged.
+		* @param {Array<Mesh>} supportSpotsHelpers - A reference to an empty array. Support spot helpers will be added to it.
+		* @param {Array<Mesh>} statesHelpers - A reference to an empty array. State helpers will be added to it.
+		*/
 		_debugTeam( team, supportSpotsHelpers, statesHelpers ) {
 
 			// support spots
@@ -62318,6 +62671,47 @@
 
 		}
 
+		/**
+		* Inits the game and AI logic.
+		*/
+		_initGame() {
+
+			const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
+			goalRed.rotation.fromEuler( 0, Math.PI * - 0.5, 0 );
+			goalRed.position.x = 10;
+			this.entityManager.add( goalRed );
+
+			const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.BLUE );
+			goalBlue.position.x = - 10;
+			goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
+			this.entityManager.add( goalBlue );
+
+			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
+			this.entityManager.add( pitch );
+
+			const ball = this._createBall( pitch );
+			this.entityManager.add( ball );
+
+			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, TEAM.RED );
+			this.entityManager.add( teamRed );
+
+			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, TEAM.BLUE );
+			this.entityManager.add( teamBlue );
+
+			teamRed.opposingTeam = teamBlue;
+			teamBlue.opposingTeam = teamRed;
+
+			pitch.ball = ball;
+			pitch.teamBlue = teamBlue;
+			pitch.teamRed = teamRed;
+
+			this.pitch = pitch;
+
+		}
+
+		/**
+		* Inits the 3D scene of the application.
+		*/
 		_initScene() {
 
 			// rendering setup
@@ -62433,41 +62827,9 @@
 
 		}
 
-		_initGame() {
-
-			const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
-			goalRed.rotation.fromEuler( 0, Math.PI * - 0.5, 0 );
-			goalRed.position.x = 10;
-			this.entityManager.add( goalRed );
-
-			const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.BLUE );
-			goalBlue.position.x = - 10;
-			goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
-			this.entityManager.add( goalBlue );
-
-			const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
-			this.entityManager.add( pitch );
-
-			const ball = this._createBall( pitch );
-			this.entityManager.add( ball );
-
-			const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, TEAM.RED );
-			this.entityManager.add( teamRed );
-
-			const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, TEAM.BLUE );
-			this.entityManager.add( teamBlue );
-
-			teamRed.opposingTeam = teamBlue;
-			teamBlue.opposingTeam = teamRed;
-
-			pitch.ball = ball;
-			pitch.teamBlue = teamBlue;
-			pitch.teamRed = teamRed;
-
-			this.pitch = pitch;
-
-		}
-
+		/**
+		* Inits the user interface.
+		*/
 		_initUI() {
 
 			// prepare visual helpers
@@ -62476,7 +62838,7 @@
 			this._debugTeam( this.pitch.teamBlue, this._supportingSpotsBlueHelpers, this._statesBlueHelpers );
 			this._debugTeam( this.pitch.teamRed, this._supportingSpotsRedHelpers, this._statesRedHelpers );
 
-			// setup UI
+			// setup debugging UI
 
 			const gui = new GUI$1( { width: 300 } );
 			const params = this.debugParameter;
@@ -62577,6 +62939,13 @@
 
 		}
 
+		/**
+		* Helpers of teams have to be update per simulation step.
+		*
+		* @param {Team} team - A reference to the team that helpers should be updated.
+		* @param {Array<Mesh>} supportSpotsHelpers - The support spot helpers of the team.
+		* @param {Array<Mesh>} statesHelpers - The state helpers of the team.
+		*/
 		_updateTeamHelpers( team, supportSpotsHelpers, statesHelpers ) {
 
 			// support spots
@@ -62634,6 +63003,8 @@
 
 	}
 
+	// handles window resizes
+
 	function onWindowResize() {
 
 		this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -62643,6 +63014,8 @@
 
 	}
 
+	// animation loop
+
 	function startAnimation() {
 
 		this._requestID = requestAnimationFrame( this._startAnimation );
@@ -62651,11 +63024,15 @@
 
 	}
 
+	// can be used to stop the animation loop (e.g. when the game is paused)
+
 	function stopAnimation() {
 
 		cancelAnimationFrame( this._requestID );
 
 	}
+
+	// maps transformation of game entities to render components
 
 	function sync( entity, renderComponent ) {
 

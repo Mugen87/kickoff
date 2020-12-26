@@ -1,7 +1,3 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, Sprite, SpriteMaterial, Color, Fog } from 'three';
 import { EntityManager, Time } from 'yuka';
 import * as DAT from 'dat.gui';
@@ -13,50 +9,42 @@ import Pitch from '../entities/Pitch.js';
 import Team from '../entities/Team.js';
 import { TEAM } from './Constants.js';
 
+/**
+* Class for representing the game environment. Entry point for the application.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class World {
 
+	/**
+	* Constructs a new world instance.
+	*/
 	constructor() {
 
-		this.entityManager = new EntityManager();
-		this.time = new Time();
-
-		this.camera = null;
-		this.scene = null;
-		this.renderer = null;
-
+		/**
+		* A reference game's asset manager.
+		* @type AssetManager
+		*/
 		this.assetManager = null;
 
-		this.ui = {
-			goalsBlue: document.getElementById( 'goals-blue' ),
-			goalsRed: document.getElementById( 'goals-red' )
-		};
+		/**
+		* A reference to the perspective camera.
+		* @type PerspectiveCamera
+		*/
+		this.camera = null;
 
+		/**
+		* Whether the debug mode should be active or not.
+		* When activated, it's possible to visually debug various aspect
+		* of the AI via helper objects.
+		* @type Object
+		*/
 		this.debug = true;
 
-		//
-
-		this.pitch = null;
-
-		//
-
-		this.ballMesh = null;
-		this.goalMesh = null;
-		this.pitchMesh = null;
-		this.teamRedMesh = null;
-		this.teamBlueMesh = null;
-
-		//
-
-		this.pitchDimension = {
-			width: 20,
-			height: 15
-		};
-
-		this.goalDimensions = {
-			width: 2,
-			height: 1
-		};
-
+		/**
+		* These debug parameters allow to selectively enable/disable helpers.
+		* @type Object
+		*/
 		this.debugParameter = {
 			'showAxes': false,
 			'showWalls': false,
@@ -67,6 +55,74 @@ class World {
 			'showStatesRed': false
 		};
 
+		/**
+		* The entity manager of this game.
+		* @type EntityManager
+		*/
+		this.entityManager = new EntityManager();
+
+		/**
+		* The dimensions of the goal.
+		* @type Object
+		*/
+		this.goalDimensions = {
+			width: 2,
+			height: 1
+		};
+
+		/**
+		* A reference to the pitch object.
+		* @type Pitch
+		*/
+		this.pitch = null;
+
+		/**
+		* The dimensions of the pitch.
+		* @type Object
+		*/
+		this.pitchDimension = {
+			width: 20,
+			height: 15
+		};
+
+		/**
+		* A reference to the WebGL renderer.
+		* @type WebGLRenderer
+		*/
+		this.renderer = null;
+
+		/**
+		* A reference to the scene graph.
+		* @type Scene
+		*/
+		this.scene = null;
+
+		/**
+		* The timer used to determine time delta values.
+		* @type Time
+		*/
+		this.time = new Time();
+
+		/**
+		* This object holds references to UI elements that will
+		* be updated over time.
+		* @type Object
+		*/
+		this.ui = {
+			goalsBlue: document.getElementById( 'goals-blue' ),
+			goalsRed: document.getElementById( 'goals-red' )
+		};
+
+		// render components for game entities
+
+		this.ballMesh = null;
+		this.goalMesh = null;
+		this.pitchMesh = null;
+		this.teamRedMesh = null;
+		this.teamBlueMesh = null;
+
+		// helpers
+
 		this._axesHelper = null;
 		this._regionHelpers = [];
 		this._wallHelpers = [];
@@ -75,9 +131,14 @@ class World {
 		this._statesRedHelpers = [];
 		this._statesBlueHelpers = [];
 
-		//
 
+		/**
+		* Request ID of the animation loop.
+		* @type Number
+		*/
 		this._requestID = null;
+
+		// event listeners and callbacks
 
 		this._startAnimation = startAnimation.bind( this );
 		this._stopAnimation = stopAnimation.bind( this );
@@ -85,6 +146,9 @@ class World {
 
 	}
 
+	/**
+	* Inits the game environment. Entry point of the application.
+	*/
 	async init() {
 
 		this.assetManager = new AssetManager();
@@ -105,6 +169,9 @@ class World {
 
 	}
 
+	/**
+	* Updates the state of the user interface.
+	*/
 	refreshUI() {
 
 		const teamBlue = this.pitch.teamBlue;
@@ -115,6 +182,9 @@ class World {
 
 	}
 
+	/**
+	* Central update loop of the game.
+	*/
 	update() {
 
 		const delta = this.time.update().getDelta();
@@ -139,6 +209,12 @@ class World {
 
 	}
 
+	/**
+	* Factory method to create the soccer ball of the game.
+	*
+	* @param {Pitch} pitch - A reference to the soccer pitch.
+	* @return {Ball} The created ball.
+	*/
 	_createBall( pitch ) {
 
 		const ball = new Ball( pitch );
@@ -151,6 +227,14 @@ class World {
 
 	}
 
+	/**
+	* Factory method to create a soccer goal.
+	*
+	* @param {Number} width - The width of the goal.
+	* @param {Number} height - The height of the goal.
+	* @param {Number} color - The color of the team that owns this goal (blue or red).
+	* @return {Goal} The created goal.
+	*/
 	_createGoal( width, height, color ) {
 
 		const goal = new Goal( width, height, color );
@@ -163,6 +247,14 @@ class World {
 
 	}
 
+	/**
+	* Factory method to create a soccer pitch.
+	*
+	* @param {Number} width - The width of the pitch.
+	* @param {Number} height - The height of the pitch.
+	* @param {World} world - A reference to the world.
+	* @return {Pitch} The created pitch.
+	*/
 	_createPitch( width, height, world ) {
 
 		const pitch = new Pitch( width, height, world );
@@ -175,11 +267,23 @@ class World {
 
 	}
 
+	/**
+	* Factory method to create a soccer team.
+	*
+	* @param {Ball} ball - A reference to the ball.
+	* @param {Pitch} pitch - A reference to the pitch.
+	* @param {Goal} homeGoal - A reference to the home goal.
+	* @param {Goal} opposingGoal - A reference to the opposing goal.
+	* @param {Number} color - The team's color (blue or red).
+	* @return {Team} The created team.
+	*/
 	_createTeam( ball, pitch, homeGoal, opposingGoal, color ) {
 
 		const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
 
 		const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+
+		// Create render components for the players of the team.
 
 		for ( let i = 0, l = team.children.length; i < l; i ++ ) {
 
@@ -194,6 +298,9 @@ class World {
 
 	}
 
+	/**
+	* Creates visual helpers for debugging the pitch.
+	*/
 	_debugPitch() {
 
 		const pitch = this.pitch;
@@ -260,6 +367,13 @@ class World {
 
 	}
 
+	/**
+	* Creates visual helpers for debugging a team.
+	*
+	* @param {Team} team - A reference to the team that should be debugged.
+	* @param {Array<Mesh>} supportSpotsHelpers - A reference to an empty array. Support spot helpers will be added to it.
+	* @param {Array<Mesh>} statesHelpers - A reference to an empty array. State helpers will be added to it.
+	*/
 	_debugTeam( team, supportSpotsHelpers, statesHelpers ) {
 
 		// support spots
@@ -323,6 +437,47 @@ class World {
 
 	}
 
+	/**
+	* Inits the game and AI logic.
+	*/
+	_initGame() {
+
+		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
+		goalRed.rotation.fromEuler( 0, Math.PI * - 0.5, 0 );
+		goalRed.position.x = 10;
+		this.entityManager.add( goalRed );
+
+		const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.BLUE );
+		goalBlue.position.x = - 10;
+		goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
+		this.entityManager.add( goalBlue );
+
+		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
+		this.entityManager.add( pitch );
+
+		const ball = this._createBall( pitch );
+		this.entityManager.add( ball );
+
+		const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, TEAM.RED );
+		this.entityManager.add( teamRed );
+
+		const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, TEAM.BLUE );
+		this.entityManager.add( teamBlue );
+
+		teamRed.opposingTeam = teamBlue;
+		teamBlue.opposingTeam = teamRed;
+
+		pitch.ball = ball;
+		pitch.teamBlue = teamBlue;
+		pitch.teamRed = teamRed;
+
+		this.pitch = pitch;
+
+	}
+
+	/**
+	* Inits the 3D scene of the application.
+	*/
 	_initScene() {
 
 		// rendering setup
@@ -438,41 +593,9 @@ class World {
 
 	}
 
-	_initGame() {
-
-		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
-		goalRed.rotation.fromEuler( 0, Math.PI * - 0.5, 0 );
-		goalRed.position.x = 10;
-		this.entityManager.add( goalRed );
-
-		const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.BLUE );
-		goalBlue.position.x = - 10;
-		goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
-		this.entityManager.add( goalBlue );
-
-		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
-		this.entityManager.add( pitch );
-
-		const ball = this._createBall( pitch );
-		this.entityManager.add( ball );
-
-		const teamRed = this._createTeam( ball, pitch, goalRed, goalBlue, TEAM.RED );
-		this.entityManager.add( teamRed );
-
-		const teamBlue = this._createTeam( ball, pitch, goalBlue, goalRed, TEAM.BLUE );
-		this.entityManager.add( teamBlue );
-
-		teamRed.opposingTeam = teamBlue;
-		teamBlue.opposingTeam = teamRed;
-
-		pitch.ball = ball;
-		pitch.teamBlue = teamBlue;
-		pitch.teamRed = teamRed;
-
-		this.pitch = pitch;
-
-	}
-
+	/**
+	* Inits the user interface.
+	*/
 	_initUI() {
 
 		// prepare visual helpers
@@ -481,7 +604,7 @@ class World {
 		this._debugTeam( this.pitch.teamBlue, this._supportingSpotsBlueHelpers, this._statesBlueHelpers );
 		this._debugTeam( this.pitch.teamRed, this._supportingSpotsRedHelpers, this._statesRedHelpers );
 
-		// setup UI
+		// setup debugging UI
 
 		const gui = new DAT.GUI( { width: 300 } );
 		const params = this.debugParameter;
@@ -582,6 +705,13 @@ class World {
 
 	}
 
+	/**
+	* Helpers of teams have to be update per simulation step.
+	*
+	* @param {Team} team - A reference to the team that helpers should be updated.
+	* @param {Array<Mesh>} supportSpotsHelpers - The support spot helpers of the team.
+	* @param {Array<Mesh>} statesHelpers - The state helpers of the team.
+	*/
 	_updateTeamHelpers( team, supportSpotsHelpers, statesHelpers ) {
 
 		// support spots
@@ -639,6 +769,8 @@ class World {
 
 }
 
+// handles window resizes
+
 function onWindowResize() {
 
 	this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -648,6 +780,8 @@ function onWindowResize() {
 
 }
 
+// animation loop
+
 function startAnimation() {
 
 	this._requestID = requestAnimationFrame( this._startAnimation );
@@ -656,11 +790,15 @@ function startAnimation() {
 
 }
 
+// can be used to stop the animation loop (e.g. when the game is paused)
+
 function stopAnimation() {
 
 	cancelAnimationFrame( this._requestID );
 
 }
+
+// maps transformation of game entities to render components
 
 function sync( entity, renderComponent ) {
 

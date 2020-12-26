@@ -59,12 +59,6 @@ class Player extends Vehicle {
 		this.homeRegionId = defaultRegionId;
 
 		/**
-		* The maximum speed of the ball.
-		* @type Number
-		*/
-		this.maxSpeed = 2;
-
-		/**
 		* A reference to the pitch.
 		* @type Pitch
 		*/

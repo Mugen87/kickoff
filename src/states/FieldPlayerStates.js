@@ -1,7 +1,3 @@
-/**
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 import { Quaternion, State, Vector3 } from 'yuka';
 import { CONFIG, FIELDPLAYER_STATES, MESSAGE, ROLE } from '../core/Constants';
 
@@ -12,11 +8,18 @@ const _goalDirection = new Vector3();
 const _rotation = new Quaternion();
 const _toBall = new Vector3();
 
+/**
+* The global state of the field player.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class GlobalState extends State {
 
 	execute( player ) {
 
-		if ( player.isBallWithinReceivingRange() && player.isControllingPlayer() ) {
+		// If a player is in possession and close to the ball reduce his max speed.
+
+		if ( player.isControllingPlayer() && player.isBallWithinReceivingRange() ) {
 
 			player.maxSpeed = CONFIG.PLAYER_MAX_SPEED_WITH_BALL;
 
@@ -36,6 +39,8 @@ class GlobalState extends State {
 
 				player.setDefaultHomeRegion();
 
+				// It's important to immediately update the steering target so it reflects the new home position.
+
 				player.steeringTarget.copy( player.getHomeRegion().center );
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.RETURN_HOME );
@@ -43,6 +48,9 @@ class GlobalState extends State {
 				return true;
 
 			case MESSAGE.PASS_TO_ME:
+
+				// If there is already a receiving player or the ball is not within kicking range,
+				// this player cannot pass the ball to the player making the request.
 
 				if ( player.team.receivingPlayer !== null || player.isBallWithinKickingRange() === false ) {
 
@@ -53,13 +61,19 @@ class GlobalState extends State {
 				const requester = telegram.data.requester;
 				const ball = player.team.ball;
 
+				// Make pass.
+
 				_kickForce.subVectors( requester.position, ball.position ).normalize().multiplyScalar( CONFIG.PLAYER_MAX_PASSING_FORCE );
 
 				ball.kick( _kickForce );
 
-				player.team.sendMessage( requester, MESSAGE.RECEIVE_BALL, 0, { target: requester.position.clone() } ); // TODO: Call sendMessage on game entity (currently not possible because of missing manager reference)
+				// Let the receiver know a pass is coming.
+
+				player.team.sendMessage( requester, MESSAGE.RECEIVE_BALL, 0, { target: requester.position.clone() } );
 
 				player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
+
+				// Update supporting attacker.
 
 				player.team.findSupport();
 
@@ -91,8 +105,11 @@ class GlobalState extends State {
 
 }
 
-//
-
+/**
+* In this state the field player will try to seek to the ball position.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class ChaseBallState extends State {
 
 	enter( player ) {
@@ -105,7 +122,7 @@ class ChaseBallState extends State {
 
 	execute( player ) {
 
-		// if the ball is within kicking range the player changes state to "KICK_BALL"
+		// If the ball is within kicking range the player changes state to KICK_BALL.
 
 		if ( player.isBallWithinKickingRange() ) {
 
@@ -115,7 +132,7 @@ class ChaseBallState extends State {
 
 		}
 
-		// if the player is the closest player to the ball then he should keep chasing it
+		// If the player is the closest player to the ball then he should keep chasing it.
 
 		if ( player.isClosestTeamMemberToBall() ) {
 
@@ -126,7 +143,7 @@ class ChaseBallState extends State {
 
 		}
 
-		// if the player is not closest to the ball anymore, he should return back  to his home region and wait for another opportunity
+		// If the player is not closest to the ball anymore, he should return back to his home region and wait for another opportunity.
 
 		player.stateMachine.changeTo( FIELDPLAYER_STATES.RETURN_HOME );
 
@@ -142,8 +159,11 @@ class ChaseBallState extends State {
 
 }
 
-//
-
+/**
+* In this state the ball controlling field player moves to the opposing goal.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class DribbleState extends State {
 
 	enter( player ) {
@@ -161,18 +181,18 @@ class DribbleState extends State {
 
 		const dot = _facingDirection.dot( _goalDirection );
 
-		// if the ball is between the player and the home goal, it needs to
+		// If the ball is between the player and the home goal, it needs to
 		// swivel the ball around by doing multiple small kicks and turns until
-		// the player is facing in the correct direction
+		// the player is facing in the correct direction.
 
 		if ( dot < 0 ) {
 
-			// the player's heading is going to be rotated by a small amount
-			// (Pi/4) and then the ball will be kicked in that direction
+			// The player's heading is going to be rotated by a small amount
+			// (Pi/4) and then the ball will be kicked in that direction.
 
-			// calculate the sign (+/-) of the angle between the player heading
+			// Calculate the sign (+/-) of the angle between the player heading
 			// and the facing direction of the goal so that the player rotates
-			// around in the correct direction
+			// around in the correct direction.
 
 			const sign = ( ( _facingDirection.x * _goalDirection.z ) < ( _facingDirection.z * _goalDirection.x ) ) ? 1 : - 1;
 
@@ -182,13 +202,13 @@ class DribbleState extends State {
 
 			_kickForce.copy( _facingDirection ).multiplyScalar( CONFIG.PLAYER_MAX_DRIBBLE_AND_TURN_FORCE );
 
-			// kick the ball with a lower force if the player turns around
+			// Kick the ball with a lower force if the player turns around.
 
 			ball.kick( _kickForce );
 
 		} else {
 
-			// kick the ball down the field
+			// Kick the ball down the field.
 
 			_kickForce.copy( _goalDirection ).multiplyScalar( CONFIG.PLAYER_MAX_DRIBBLE_FORCE );
 
@@ -196,7 +216,7 @@ class DribbleState extends State {
 
 		}
 
-		// the player has kicked the ball so he must now change state to follow it
+		// The player has kicked the ball so he must now change state to follow it.
 
 		player.stateMachine.changeTo( FIELDPLAYER_STATES.CHASE_BALL );
 
@@ -204,15 +224,18 @@ class DribbleState extends State {
 
 }
 
-//
-
+/**
+* In this state the player kicks the ball. The player can shot a the goal or pass to a team member.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class KickBallState extends State {
 
 	enter( player ) {
 
 		player.team.setControl( player );
 
-		// the player can only make a specific amount of kicks per second
+		// The player can only make a specific amount of kicks per second.
 
 		if ( player.isReadyForNextKick() === false ) {
 
@@ -228,13 +251,13 @@ class KickBallState extends State {
 		const ball = team.ball;
 		const pitch = player.pitch;
 
-		// calculate the dot product of the vector pointing to the ball and the player's heading
+		// Compute the dot product of the vector pointing to the ball and the player's heading.
 
 		_toBall.subVectors( ball.position, player.position ).normalize();
 		player.getDirection( _facingDirection );
 		const dot = _toBall.dot( _facingDirection );
 
-		// cannot kick the ball if the goalkeeper is in possession or if it is behind the player
+		// Cannot kick the ball if the goalkeeper is in possession or if it is behind the player
 		// or if there is already an assigned receiver. So just continue chasing the ball.
 
 		if ( pitch.isGoalKeeperInBallPossession || ( dot < 0 ) || team.receivingPlayer !== null ) {
@@ -247,28 +270,33 @@ class KickBallState extends State {
 
 		/* attempt a shot at the goal */
 
-		 // the dot product is used to adjust the shooting force. The more
-		// directly the ball is ahead, the more forceful the kick
+		// The dot product is used to adjust the shooting force. The more
+		// directly the ball is ahead, the more forceful the kick.
 
 		let power = CONFIG.PLAYER_MAX_SHOOTING_FORCE * dot;
 
+		// If it is determined that the player could score a goal from this position OR if he should just kick the ball anyway,
+		// the player will  attempt to make the shot.
+
 		if ( ( team.canShoot( ball.position, power, _shootTarget ) ) || ( Math.random() < CONFIG.PLAYER_CHANCE_ATTEMPT_POT_SHOT ) ) {
 
-			// add some noise to the kick. We don't want players who are too accurate!
+			// Add some noise to the kick. Avoid players who are too accurate.
 
 			player.addNoise( _shootTarget );
 
-			// this is the direction the ball will be kicked in
+			// This is the direction the ball will be kicked in.
 
 			_kickForce.subVectors( _shootTarget, ball.position ).normalize().multiplyScalar( power );
 
-			// do the kick!
+			// Kick.
 
 			ball.kick( _kickForce );
 
-			// change state
+			// Change state
 
 			player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
+
+			// Update supporting attacker.
 
 			team.findSupport();
 
@@ -285,38 +313,37 @@ class KickBallState extends State {
 			target: new Vector3()
 		};
 
-		// test if there are any potential candidates available to receive a pass
+		// Test if there are any potential candidates available to receive a pass.
 
 		if ( player.isThreatened() && team.findPass( player, power, CONFIG.PLAYER_MIN_PASS_DISTANCE, pass ) ) {
 
-			// add some noise to the kick
-
 			player.addNoise( pass.target );
-
-			// this is the direction the ball will be kicked in
 
 			_kickForce.subVectors( pass.target, ball.position ).normalize().multiplyScalar( power );
 
-			// do the kick!
-
 			ball.kick( _kickForce );
 
-			// let the receiving player know the ball's coming at him
+			// Let the receiving player know the ball's coming at him.
 
 			team.sendMessage( pass.receiver, MESSAGE.RECEIVE_BALL, 0, { target: pass.target } );
 
-			// the player should wait at his current position unless instructed otherwise
+			// The player should wait at his current position unless instructed otherwise.
 
 			player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
+
+			// Update supporting attacker.
 
 			team.findSupport();
 
 		} else {
 
-			// cannot shoot or pass, so dribble the ball upfield
-			team.findSupport();
+			// Cannot shoot or pass, so dribble the ball upfield.
 
 			player.stateMachine.changeTo( FIELDPLAYER_STATES.DRIBBLE );
+
+			// Update supporting attacker.
+
+			team.findSupport();
 
 		}
 
@@ -324,8 +351,11 @@ class KickBallState extends State {
 
 }
 
-//
-
+/**
+* In this state the field player receives the ball.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class ReceiveBallState extends State {
 
 	enter( player ) {
@@ -343,7 +373,7 @@ class ReceiveBallState extends State {
 		// PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR, whether or not an opposing
 		// player is close to the receiving player, and whether or not the receiving
 		// player is in the opponents "hot region" (the third of the pitch closest
-		// to the opponent's goal)
+		// to the opponent's goal).
 
 		if ( ( player.inHotRegion() || Math.random() > CONFIG.PLAYER_CHANCE_OF_USING_ARRIVE_TYPE_RECEIVE_BEHAVIOR ) &&
 			player.team.isOpponentWithinRadius( player, CONFIG.PLAYER_PASS_THREAD_RADIUS ) ) {
@@ -364,8 +394,8 @@ class ReceiveBallState extends State {
 
 	execute( player ) {
 
-		// if the ball comes close enough to the player or if his team lose
-		// control he should change state to chase the ball
+		// If the ball comes close enough to the player or if his team lose
+		// control he should change state to chase the ball.
 
 		if ( player.isBallWithinReceivingRange() || player.team.inControl() === false ) {
 
@@ -374,7 +404,7 @@ class ReceiveBallState extends State {
 
 		}
 
-		// if "pursuit" is active, it's necessary to update the target position
+		// If "pursuit" is active, it's necessary to update the target position.
 
 		const pursuitBehavior = player.steering.behaviors[ 2 ];
 		const ball = player.team.ball;
@@ -385,7 +415,7 @@ class ReceiveBallState extends State {
 
 		}
 
-		// if the player has "arrived" at the steering target he should wait and turn to face the ball
+		// If the player has "arrived" at the steering target he should wait and turn to face the ball.
 
 		if ( player.atTarget() ) {
 
@@ -425,8 +455,11 @@ class ReceiveBallState extends State {
 
 }
 
-//
-
+/**
+* In this state the field player will return to his home region.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class ReturnHomeState extends State {
 
 	enter( player ) {
@@ -435,7 +468,7 @@ class ReturnHomeState extends State {
 		arriveBehavior.target = player.steeringTarget;
 		arriveBehavior.active = true;
 
-		// ensure the player's steering target is within the home region
+		// Ensure the player's steering target is within the home region.
 
 		if ( player.getHomeRegion().isInside( player.steeringTarget, true ) === false ) {
 
@@ -451,9 +484,8 @@ class ReturnHomeState extends State {
 
 		if ( pitch.isPlaying ) {
 
-			// if the ball is nearer this player than any other team member &&
-			// there is not an assigned receiver && the goalkeeper does not has
-			// the ball, go chase it
+			// If the ball is nearer this player than any other team member &&
+			// there is not an assigned receiver && the goalkeeper does not have the ball, go chase it.
 
 			if ( player.isClosestTeamMemberToBall() && player.team.receivingPlayer === null && pitch.isGoalKeeperInBallPossession === false ) {
 
@@ -465,9 +497,8 @@ class ReturnHomeState extends State {
 
 		}
 
-		// if game is on and the player is close enough to home, change state to
-		// wait and set the player target to his current position (so that if he
-		// gets jostled out of position he can move back to it)
+		// If game is on and the player is close enough to home, change state to
+		// wait and set the player target to his current position.
 
 		if ( pitch.isPlaying && player.inHomeRegion() ) {
 
@@ -475,8 +506,8 @@ class ReturnHomeState extends State {
 
 			player.stateMachine.changeTo( FIELDPLAYER_STATES.WAIT );
 
-			// if game is not on the player must return much closer to the center of
-			// his home region
+			// If game is not on the player must return much closer to the center of
+			// his home region.
 
 		} else if ( pitch.isPlaying === false && player.atTarget() ) {
 
@@ -498,8 +529,11 @@ class ReturnHomeState extends State {
 
 }
 
-//
-
+/**
+* In this state the field player will try to support to the attacker.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class SupportAttackerState extends State {
 
 	enter( player ) {
@@ -516,7 +550,7 @@ class SupportAttackerState extends State {
 
 		const team = player.team;
 
-		// if his team loses control go back home
+		// If his team loses control go back home.
 
 		if ( team.inControl() === false ) {
 
@@ -525,7 +559,7 @@ class SupportAttackerState extends State {
 
 		}
 
-		// if the player becomes suddenly the closest player to the ball AND there is no receiving player then chase the ball
+		// If the player becomes suddenly the closest player to the ball AND there is no receiving player then chase the ball.
 
 		if ( player.isClosestTeamMemberToBall() && player.team.receivingPlayer === null ) {
 
@@ -534,7 +568,7 @@ class SupportAttackerState extends State {
 
 		}
 
-		// if the best supporting spot changes, change the steering target
+		// If the best supporting spot changes, change the steering target.
 
 		if ( team.getSupportPosition().equals( player.steeringTarget ) === false ) {
 
@@ -545,7 +579,7 @@ class SupportAttackerState extends State {
 
 		}
 
-		// if this player has a shot at the goal AND the attacker can pass the ball to him the attacker should pass the ball to this player
+		// If this player has a shot at the goal AND the attacker can pass the ball to him the attacker should pass the ball to this player.
 
 		if ( team.canShoot( player.position, CONFIG.PLAYER_MAX_SHOOTING_FORCE, _shootTarget ) ) {
 
@@ -553,19 +587,20 @@ class SupportAttackerState extends State {
 
 		}
 
-		// if this player is located at the support spot and his team still have
-		// possession, he should remain still and turn to face the ball
+		// If this player is located at the support spot and his team still have
+		// possession, he should remain still and turn to face the ball.
 
 		if ( player.atTarget() ) {
 
 			const arriveBehavior = player.steering.behaviors[ 1 ];
 			arriveBehavior.active = false;
 
-			// the player should keep his eyes on the ball!
+			// The player should keep his eyes on the ball.
+
 			player.rotateTo( team.ball.position, player.currentDelta );
 			player.velocity.set( 0, 0, 0 );
 
-			// if not threatened by another player request a pass
+			// If not threatened by another player request a pass.
 
 			if ( player.isThreatened() === false ) {
 
@@ -593,8 +628,11 @@ class SupportAttackerState extends State {
 
 }
 
-//
-
+/**
+* In this state the field player will wait in his home region.
+*
+* @author {@link https://github.com/Mugen87|Mugen87}
+*/
 class WaitState extends State {
 
 	execute( player ) {
@@ -604,8 +642,8 @@ class WaitState extends State {
 
 		const arriveBehavior = player.steering.behaviors[ 1 ];
 
-		// if players are in this state and the team strategy changes, it is necessary
-		// that the player moves to an updated steering target.
+		// If players are in this state and the team strategy changes, it is necessary
+		// that the players moves to an updated steering target.
 
 		if ( player.atTarget() === false ) {
 
@@ -623,9 +661,9 @@ class WaitState extends State {
 
 		if ( pitch.isPlaying ) {
 
-			// if the ball is nearer to this player than any other team member AND
+			// If the ball is nearer to this player than any other team member AND
 			// there is not an assigned receiver AND neither goalkeeper has the
-			// ball, go chase it
+			// ball, go chase it.
 
 			if ( player.isClosestTeamMemberToBall() && team.receivingPlayer === null && pitch.isGoalKeeperInBallPossession === false ) {
 
@@ -636,7 +674,7 @@ class WaitState extends State {
 
 		}
 
-		// if this player's team is controlling AND this player is not the
+		// If this player's team is controlling AND this player is not the
 		// attacker AND is further up the field than the attacker AND if the controlling player
 		// is not the goalkeeper he should request a pass
 
