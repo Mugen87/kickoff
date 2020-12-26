@@ -70,7 +70,8 @@ class FieldPlayer extends Player {
 
 		super.update( delta );
 
-		// In most states field players should focus the ball. In others (RETURN_HOME and SUPPORT_ATTACKER) it is better to focus the steering target.
+		// In most states field players should always focus the ball. In other states (RETURN_HOME and SUPPORT_ATTACKER) the focus point
+		// depends on the current situation. It might be the ball or the current steering target.
 
 		if ( this.stateMachine.in( FIELDPLAYER_STATES.RETURN_HOME ) === false && this.stateMachine.in( FIELDPLAYER_STATES.SUPPORT_ATTACKER ) === false ) {
 
