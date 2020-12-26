@@ -35,7 +35,7 @@ export const CONFIG = {
 	PLAYER_COMFORT_ZONE: 2.5, // when an opponents comes within this range the player will attempt to pass the ball. Players tend to pass more often, the higher the value
 	PLAYER_IN_TARGET_RANGE: 0.25, // the player has to be this close to its steering target to be considered as arrived
 	PLAYER_KICK_FREQUENCY: 1, // the number of times a player can kick the ball per second
-	PLAYER_KICKING_DISTANCE: 0.3, // player has to be this close to the ball to be able to kick it
+	PLAYER_KICKING_RANGE: 0.3, // player has to be this close to the ball to be able to kick it
 	PLAYER_MAX_DRIBBLE_AND_TURN_FORCE: 0.4, // the force used for dribbling while turning around
 	PLAYER_MAX_DRIBBLE_FORCE: 0.6, // the force used for dribbling
 	PLAYER_MAX_PASSING_FORCE: 3, // the force used for passing
@@ -72,5 +72,5 @@ CONFIG.GOALKEEPER_INTERCEPT_RANGE_SQ = CONFIG.GOALKEEPER_INTERCEPT_RANGE * CONFI
 CONFIG.GOALKEEPER_IN_TARGET_RANGE_SQ = CONFIG.GOALKEEPER_IN_TARGET_RANGE * CONFIG.GOALKEEPER_IN_TARGET_RANGE;
 CONFIG.PLAYER_COMFORT_ZONE_SQ = CONFIG.PLAYER_COMFORT_ZONE * CONFIG.PLAYER_COMFORT_ZONE;
 CONFIG.PLAYER_IN_TARGET_RANGE_SQ = CONFIG.PLAYER_IN_TARGET_RANGE * CONFIG.PLAYER_IN_TARGET_RANGE;
-CONFIG.PLAYER_KICKING_DISTANCE_SQ = CONFIG.PLAYER_KICKING_DISTANCE * CONFIG.PLAYER_KICKING_DISTANCE;
+CONFIG.PLAYER_KICKING_RANGE_SQ = CONFIG.PLAYER_KICKING_RANGE * CONFIG.PLAYER_KICKING_RANGE;
 CONFIG.PLAYER_RECEIVING_RANGE_SQ = CONFIG.PLAYER_RECEIVING_RANGE * CONFIG.PLAYER_RECEIVING_RANGE;

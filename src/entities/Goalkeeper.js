@@ -24,10 +24,12 @@ class Goalkeeper extends Player {
 
 		super( ROLE.GOALKEEPER, team, pitch, defaultRegionId );
 
+		this.maxSpeed = 1.5;
+
 		// steering behaviors
 
 		const arriveBehavior = new ArriveBehavior();
-		arriveBehavior.deceleration = 1.5;
+		arriveBehavior.deceleration = 1;
 		arriveBehavior.active = false;
 		this.steering.add( arriveBehavior );
 

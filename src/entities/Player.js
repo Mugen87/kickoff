@@ -218,7 +218,7 @@ class Player extends Vehicle {
 
 		const ball = this.team.ball;
 
-		return this.position.squaredDistanceTo( ball.position ) < CONFIG.PLAYER_KICKING_DISTANCE_SQ;
+		return this.position.squaredDistanceTo( ball.position ) < CONFIG.PLAYER_KICKING_RANGE_SQ;
 
 	}
 
