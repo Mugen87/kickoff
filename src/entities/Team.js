@@ -55,80 +55,80 @@ class Team extends GameEntity {
 
 		/**
 		* A reference to the ball.
-		* @type Ball
+		* @type {Ball}
 		*/
 		this.ball = ball;
 
 		/**
 		* The color of the team.
-		* @type Number
+		* @type {Number}
 		*/
 		this.color = color;
 
 		/**
 		* The player who is currently controlling the ball. Can be null.
-		* @type Player
+		* @type {Player}
 		*/
 		this.controllingPlayer = null;
 
 		/**
 		* The number of goals this team has scored so far.
-		* @type Number
+		* @type {Number}
 		*/
 		this.goals = 0;
 
 		/**
 		* A reference to the own goal.
-		* @type Goal
+		* @type {Goal}
 		*/
 		this.homeGoal = homeGoal;
 
 		/**
 		* A reference to the opposing goal.
-		* @type Goal
+		* @type {Goal}
 		*/
 		this.opposingGoal = opposingGoal;
 
 		/**
 		* A reference to the opposing team. Set by the World class.
-		* @type Team
+		* @type {Team}
 		*/
 		this.opposingTeam = null;
 
 		/**
 		* A reference to the player which is closest to the ball.
 		* This player is determined per simulation step.
-		* @type Player
+		* @type {Player}
 		*/
 		this.playerClosestToBall = null;
 
 		/**
 		* A reference to the pitch.
-		* @type Pitch
+		* @type {Pitch}
 		*/
 		this.pitch = pitch;
 
 		/**
 		* A reference to the player waiting to receive the ball from a team mate. Can be null.
-		* @type Player
+		* @type {Player}
 		*/
 		this.receivingPlayer = null;
 
 		/**
 		* The state machine of the team.
-		* @type StateMachine
+		* @type {StateMachine}
 		*/
 		this.stateMachine = new StateMachine( this );
 
 		/**
 		* A reference to the player who is supporting the controlling player in an attack. Can be null.
-		* @type Player
+		* @type {Player}
 		*/
 		this.supportingPlayer = null;
 
 		/**
 		* The team's support spot calculator.
-		* @type SupportSpotCalculator
+		* @type {SupportSpotCalculator}
 		*/
 		this._supportSpotCalculator = new SupportSpotCalculator( this );
 

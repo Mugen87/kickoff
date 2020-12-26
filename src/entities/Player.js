@@ -28,69 +28,69 @@ class Player extends Vehicle {
 
 		/**
 		* The accuracy of kicks. Must be in the range [0,1]. The lower the value the worse the player gets.
-		* @type Number
+		* @type {Number}
 		*/
 		this.accuracy = 1;
 
 		/**
 		* The bounding radius of the player.
-		* @type Number
+		* @type {Number}
 		*/
 		this.boundingRadius = 0.2;
 
 		/**
 		* The current time delta value. Used in states.
-		* @type Number
+		* @type {Number}
 		*/
 		this.currentDelta = 0;
 
 		/**
 		* The default region of this player. This region represents the area
 		* of the pitch where the player is located before kickoff.
-		* @type Number
+		* @type {Number}
 		*/
 		this.defaultRegionId = defaultRegionId;
 
 		/**
 		* The current home region of this player. This region will vary over time
 		* according to the team's strategy.
-		* @type Number
+		* @type {Number}
 		*/
 		this.homeRegionId = defaultRegionId;
 
 		/**
 		* A reference to the pitch.
-		* @type Pitch
+		* @type {Pitch}
 		*/
 		this.pitch = pitch;
 
 		/**
 		* Players can take different roles e.g. Attacker or Defender.
-		* @type Number
+		* @type {Number}
 		*/
 		this.role = role;
 
 		/**
 		* The state machine of the player.
-		* @type StateMachine
+		* @type {StateMachine}
 		*/
 		this.stateMachine = new StateMachine( this );
 
 		/**
 		* The current steering target of the player.
-		* @type StateMachine
+		* @type {Vector3}
 		*/
 		this.steeringTarget = new Vector3();
 
 		/**
 		* A reference to the player's team.
-		* @type Team
+		* @type {Team}
 		*/
 		this.team = team;
 
 		/**
 		* Players have to update their orientation manually.
-		* @type Boolean
+		* @type {Boolean}
 		*/
 		this.updateOrientation = false;
 

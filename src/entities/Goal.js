@@ -22,31 +22,31 @@ class Goal extends GameEntity {
 
 		/**
 		* The width of the goal.
-		* @type Number
+		* @type {Number}
 		*/
 		this.width = width;
 
 		/**
 		* The height of the goal.
-		* @type Number
+		* @type {Number}
 		*/
 		this.height = height;
 
 		/**
 		* The color of the team that owns this goal.
-		* @type Number
+		* @type {Number}
 		*/
 		this.color = color;
 
 		/**
 		* The position of the left post. Computed by computePosts().
-		* @type Vector3
+		* @type {Vector3}
 		*/
 		this.leftPost = null;
 
 		/**
 		* The position of the right post. Computed by computePosts().
-		* @type Vector3
+		* @type {Vector3}
 		*/
 		this.rightPost = null;
 

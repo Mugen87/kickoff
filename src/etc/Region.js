@@ -19,49 +19,49 @@ class Region {
 
 		/**
 		* The center point of the region.
-		* @type Vector3
+		* @type {Vector3}
 		*/
 		this.center = center;
 
 		/**
 		* The width of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.width = width;
 
 		/**
 		* The height of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.height = height;
 
 		/**
 		* The unique identifier of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.id = id;
 
 		/**
 		* The outer left position of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.left = center.x - ( width / 2 );
 
 		/**
 		* The outer right position of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.right = center.x + ( width / 2 );
 
 		/**
 		* The outer top position of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.top = center.z + ( height / 2 );
 
 		/**
 		* The outer bottom position of the region.
-		* @type Number
+		* @type {Number}
 		*/
 		this.bottom = center.z - ( height / 2 );
 

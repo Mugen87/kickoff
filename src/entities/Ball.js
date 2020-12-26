@@ -25,31 +25,31 @@ class Ball extends MovingEntity {
 
 		/**
 		* The bounding radius of the ball.
-		* @type Number
+		* @type {Number}
 		*/
 		this.boundingRadius = 0.1;
 
 		/**
 		* The mass of the ball.
-		* @type Number
+		* @type {Number}
 		*/
 		this.mass = 0.44; // 440g
 
 		/**
 		* The maximum speed of the ball.
-		* @type Number
+		* @type {Number}
 		*/
 		this.maxSpeed = 42; // 42 m/s ~ 150km/h
 
 		/**
 		* A reference to the soccer pitch.
-		* @type Pitch
+		* @type {Pitch}
 		*/
 		this.pitch = pitch;
 
 		/**
 		* The friction of the ball. This value decreases the velocity of the ball over time.
-		* @type Number
+		* @type {Number}
 		*/
 		this.friction = - 0.8;
 
@@ -57,7 +57,7 @@ class Ball extends MovingEntity {
 
 		/**
 		* Represents the previous position of the ball in a simulation step.
-		* @type Vector3
+		* @type {Vector3}
 		*/
 		this._previousPosition = new Vector3();
 

@@ -23,13 +23,13 @@ class World {
 
 		/**
 		* A reference game's asset manager.
-		* @type AssetManager
+		* @type {AssetManager}
 		*/
 		this.assetManager = null;
 
 		/**
 		* A reference to the perspective camera.
-		* @type PerspectiveCamera
+		* @type {PerspectiveCamera}
 		*/
 		this.camera = null;
 
@@ -37,13 +37,13 @@ class World {
 		* Whether the debug mode should be active or not.
 		* When activated, it's possible to visually debug various aspect
 		* of the AI via helper objects.
-		* @type Object
+		* @type {Object}
 		*/
 		this.debug = true;
 
 		/**
 		* These debug parameters allow to selectively enable/disable helpers.
-		* @type Object
+		* @type {Object}
 		*/
 		this.debugParameter = {
 			'showAxes': false,
@@ -57,13 +57,13 @@ class World {
 
 		/**
 		* The entity manager of this game.
-		* @type EntityManager
+		* @type {EntityManager}
 		*/
 		this.entityManager = new EntityManager();
 
 		/**
 		* The dimensions of the goal.
-		* @type Object
+		* @type {Object}
 		*/
 		this.goalDimensions = {
 			width: 2,
@@ -72,13 +72,13 @@ class World {
 
 		/**
 		* A reference to the pitch object.
-		* @type Pitch
+		* @type {Pitch}
 		*/
 		this.pitch = null;
 
 		/**
 		* The dimensions of the pitch.
-		* @type Object
+		* @type {Object}
 		*/
 		this.pitchDimension = {
 			width: 20,
@@ -87,26 +87,26 @@ class World {
 
 		/**
 		* A reference to the WebGL renderer.
-		* @type WebGLRenderer
+		* @type {WebGLRenderer}
 		*/
 		this.renderer = null;
 
 		/**
 		* A reference to the scene graph.
-		* @type Scene
+		* @type {Scene}
 		*/
 		this.scene = null;
 
 		/**
 		* The timer used to determine time delta values.
-		* @type Time
+		* @type {Time}
 		*/
 		this.time = new Time();
 
 		/**
 		* This object holds references to UI elements that will
 		* be updated over time.
-		* @type Object
+		* @type {Object}
 		*/
 		this.ui = {
 			goalsBlue: document.getElementById( 'goals-blue' ),
@@ -134,7 +134,7 @@ class World {
 
 		/**
 		* Request ID of the animation loop.
-		* @type Number
+		* @type {Number}
 		*/
 		this._requestID = null;
 

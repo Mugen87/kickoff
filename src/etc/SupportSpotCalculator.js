@@ -21,25 +21,25 @@ class SupportSpotCalculator {
 
 		/**
 		* The owner team of this calculator.
-		* @type Team
+		* @type {Team}
 		*/
 		this.team = team;
 
 		/**
 		* Represents the current best supporting spot.
-		* @type Vector3
+		* @type {Vector3}
 		*/
 		this._bestSupportSpot = null;
 
 		/**
 		* Used to control how often the computation is done per second.
-		* @type VectRegulatorr3
+		* @type {Regulator}
 		*/
 		this._regulator = new Regulator( CONFIG.SUPPORT_SPOT_CALCULATOR_UPDATE_FREQUENCY );
 
 		/**
 		* Holds all possible supporting spots of a team.
-		* @type Array<Vector3>
+		* @type {Array.<Vector3>}
 		*/
 		this._spots = [];
 

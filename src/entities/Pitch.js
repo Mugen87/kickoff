@@ -24,14 +24,14 @@ class Pitch extends GameEntity {
 
 		/**
 		* A reference to the World class.
-		* @type World
+		* @type {World}
 		*/
 		this.world = world;
 
 		/**
 		* Represents the walls of the soccer pitch. The ball will
 		* collide against these walls so it can leave the playing area.
-		* @type Array<Plane>
+		* @type {Array.<Plane>}
 		*/
 		this.walls = [
 			new Plane( new Vector3( 0, 0, - 1 ), 7.5 ), // top
@@ -42,55 +42,55 @@ class Pitch extends GameEntity {
 
 		/**
 		* Whether both teams are playing or not.
-		* @type Boolean
+		* @type {Boolean}
 		*/
 		this.isPlaying = true;
 
 		/**
 		* Whether one of the goalkeepers is in ball possession or not.
-		* @type Boolean
+		* @type {Boolean}
 		*/
 		this.isGoalKeeperInBallPossession = false;
 
 		/**
 		* A reference to the soccer ball.
-		* @type Ball
+		* @type {Ball}
 		*/
 		this.ball = null;
 
 		/**
 		* A reference to the red team.
-		* @type Team
+		* @type {Team}
 		*/
 		this.teamRed = null;
 
 		/**
 		* A reference to the blue team.
-		* @type Team
+		* @type {Team}
 		*/
 		this.teamBlue = null;
 
 		/**
 		* Represents the playing area of the pitch.
-		* @type Region
+		* @type {Region}
 		*/
 		this.playingArea = new Region( this.position.clone(), width, height );
 
 		/**
 		* The region count the pitch along the x axis.
-		* @type Number
+		* @type {Number}
 		*/
 		this.regionCountWidth = 6;
 
 		/**
 		* The region count the pitch along the z axis.
-		* @type Number
+		* @type {Number}
 		*/
 		this.regionCountHeight = 3;
 
 		/**
 		* Holds the regions of the soccer pitch.
-		* @type Array<Region>
+		* @type {Array.<Region>}
 		*/
 		this.regions = [];
 

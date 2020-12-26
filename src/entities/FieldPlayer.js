@@ -25,7 +25,7 @@ class FieldPlayer extends Player {
 
 		/**
 		* Regulates how often a field player is able to kick the ball in one second.
-		* @type Number
+		* @type {Number}
 		*/
 		this._kickRegulator = new Regulator( CONFIG.PLAYER_KICK_FREQUENCY );
 
