@@ -30,7 +30,7 @@ class Player extends Vehicle {
 		* The accuracy of kicks. Must be in the range [0,1]. The lower the value the worse the player gets.
 		* @type {Number}
 		*/
-		this.accuracy = 1;
+		this.accuracy = 0.99;
 
 		/**
 		* The bounding radius of the player.
