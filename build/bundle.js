@@ -66404,6 +66404,8 @@
 
 			}
 
+			this.time.reset();
+
 			this._startAnimation();
 
 		}
