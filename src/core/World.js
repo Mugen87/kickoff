@@ -59,7 +59,7 @@ class World {
 		* The entity manager of this game.
 		* @type {EntityManager}
 		*/
-		this.entityManager = new EntityManager();
+		this.entityManager = null;
 
 		/**
 		* The dimensions of the goal.
@@ -101,7 +101,7 @@ class World {
 		* The timer used to determine time delta values.
 		* @type {Time}
 		*/
-		this.time = new Time();
+		this.time = null;
 
 		/**
 		* This object holds references to UI elements that will
@@ -433,6 +433,9 @@ class World {
 	* Inits the game and AI logic.
 	*/
 	_initGame() {
+
+		this.entityManager = new EntityManager();
+		this.time = new Time();
 
 		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
 		goalRed.rotation.fromEuler( 0, Math.PI, 0 );
