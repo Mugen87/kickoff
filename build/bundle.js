@@ -66306,7 +66306,7 @@
 			* The entity manager of this game.
 			* @type {EntityManager}
 			*/
-			this.entityManager = null;
+			this.entityManager = new EntityManager();
 
 			/**
 			* The dimensions of the goal.
@@ -66348,7 +66348,7 @@
 			* The timer used to determine time delta values.
 			* @type {Time}
 			*/
-			this.time = null;
+			this.time = new Time();
 
 			/**
 			* This object holds references to UI elements that will
@@ -66682,9 +66682,6 @@
 		* Inits the game and AI logic.
 		*/
 		_initGame() {
-
-			this.entityManager = new EntityManager();
-			this.time = new Time();
 
 			const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
 			goalRed.rotation.fromEuler( 0, Math.PI, 0 );
