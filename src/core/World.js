@@ -1,4 +1,4 @@
-import { Mesh, Scene, PerspectiveCamera, CylinderBufferGeometry, ConeBufferGeometry, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, MeshPhongMaterial, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, Sprite, SpriteMaterial, Color, Fog } from 'three';
+import { Mesh, Scene, PerspectiveCamera, PlaneBufferGeometry, SphereBufferGeometry, AmbientLight, DirectionalLight, WebGLRenderer, sRGBEncoding, PCFSoftShadowMap, AxesHelper, MeshBasicMaterial, PlaneHelper, CanvasTexture, Sprite, SpriteMaterial, Color, Fog } from 'three';
 import { EntityManager, Time } from 'yuka';
 import * as DAT from 'dat.gui';
 
@@ -113,14 +113,6 @@ class World {
 			goalsRed: document.getElementById( 'goals-red' )
 		};
 
-		// render components for game entities
-
-		this.ballMesh = null;
-		this.goalMesh = null;
-		this.pitchMesh = null;
-		this.teamRedMesh = null;
-		this.teamBlueMesh = null;
-
 		// helpers
 
 		this._axesHelper = null;
@@ -151,7 +143,7 @@ class World {
 	*/
 	async init() {
 
-		this.assetManager = new AssetManager();
+		this.assetManager = new AssetManager( this );
 
 		await this.assetManager.init();
 
@@ -218,7 +210,7 @@ class World {
 	_createBall( pitch ) {
 
 		const ball = new Ball( pitch );
-		const ballMesh = this.ballMesh.clone();
+		const ballMesh = this.assetManager.models.get( 'ball' );
 		ball.setRenderComponent( ballMesh, sync );
 
 		this.scene.add( ballMesh );
@@ -238,7 +230,7 @@ class World {
 	_createGoal( width, height, color ) {
 
 		const goal = new Goal( width, height, color );
-		const goalMesh = this.goalMesh.clone();
+		const goalMesh = this.assetManager.models.get( 'goal' ).clone();
 		goal.setRenderComponent( goalMesh, sync );
 
 		this.scene.add( goalMesh );
@@ -258,7 +250,7 @@ class World {
 	_createPitch( width, height, world ) {
 
 		const pitch = new Pitch( width, height, world );
-		const pitchMesh = this.pitchMesh.clone();
+		const pitchMesh = this.assetManager.models.get( 'pitch' );
 		pitch.setRenderComponent( pitchMesh, sync );
 
 		this.scene.add( pitchMesh );
@@ -281,7 +273,7 @@ class World {
 
 		const team = new Team( color, ball, pitch, homeGoal, opposingGoal );
 
-		const baseMesh = ( color === TEAM.RED ) ? this.teamRedMesh : this.teamBlueMesh;
+		const baseMesh = this.assetManager.models.get( ( color === TEAM.RED ) ? 'teamRed' : 'teamBlue' );
 
 		// Create render components for the players of the team.
 
@@ -443,13 +435,12 @@ class World {
 	_initGame() {
 
 		const goalRed = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.RED );
-		goalRed.rotation.fromEuler( 0, Math.PI * - 0.5, 0 );
+		goalRed.rotation.fromEuler( 0, Math.PI, 0 );
 		goalRed.position.x = 10;
 		this.entityManager.add( goalRed );
 
 		const goalBlue = this._createGoal( this.goalDimensions.width, this.goalDimensions.height, TEAM.BLUE );
 		goalBlue.position.x = - 10;
-		goalBlue.rotation.fromEuler( 0, Math.PI * 0.5, 0 );
 		this.entityManager.add( goalBlue );
 
 		const pitch = this._createPitch( this.pitchDimension.width, this.pitchDimension.height, this );
@@ -526,70 +517,8 @@ class World {
 		const groundMaterial = new MeshBasicMaterial( { color: new Color( 0xdb8d6e ).convertSRGBToLinear(), depthWrite: false } );
 		const groundMesh = new Mesh( groundGeometry, groundMaterial );
 		groundMesh.matrixAutoUpdate = false;
+		groundMesh.renderOrder = - Infinity;
 		this.scene.add( groundMesh );
-
-		// render components
-
-		const radius = 0.1;
-
-		const ballGeometry = new SphereBufferGeometry( radius, 16, 16 );
-		ballGeometry.translate( 0, radius, 0 );
-		const ballMaterial = new MeshPhongMaterial( { color: 0xffffff } );
-
-		this.ballMesh = new Mesh( ballGeometry, ballMaterial );
-		this.ballMesh.castShadow = true;
-		this.ballMesh.matrixAutoUpdate = false;
-
-		//
-
-		const pitchGeometry = new PlaneBufferGeometry( this.pitchDimension.width, this.pitchDimension.height );
-		pitchGeometry.rotateX( Math.PI * - 0.5 );
-
-		const pitchTexture = this.assetManager.textures.get( 'pitchTexture' );
-		const pitchMaterial = new MeshPhongMaterial( { map: pitchTexture } );
-
-		this.pitchMesh = new Mesh( pitchGeometry, pitchMaterial );
-		this.pitchMesh.receiveShadow = true;
-		this.pitchMesh.matrixAutoUpdate = false;
-
-		//
-
-		const goalGeometry = new PlaneBufferGeometry( this.goalDimensions.width, this.goalDimensions.height );
-		goalGeometry.translate( 0, 0.5, 0 );
-		const goalMaterial = new MeshPhongMaterial( { color: 0xffff00 } );
-
-		this.goalMesh = new Mesh( goalGeometry, goalMaterial );
-		this.goalMesh.matrixAutoUpdate = false;
-
-		//
-
-		const bodyGeometry = new CylinderBufferGeometry( 0.2, 0.2, 0.5, 16 );
-		bodyGeometry.translate( 0, 0.25, 0 );
-		const headGeometry = new ConeBufferGeometry( 0.2, 0.2, 16 );
-		headGeometry.rotateX( Math.PI * 0.5 );
-		headGeometry.translate( 0, 0.3, 0.3 );
-
-		const teamRedMaterial = new MeshPhongMaterial( { color: 0xff0000 } );
-		const teamBlueMaterial = new MeshPhongMaterial( { color: 0x0000ff } );
-
-		this.teamRedMesh = new Mesh( bodyGeometry, teamRedMaterial );
-		this.teamRedMesh.castShadow = true;
-		this.teamRedMesh.matrixAutoUpdate = false;
-
-		this.teamBlueMesh = new Mesh( bodyGeometry, teamBlueMaterial );
-		this.teamBlueMesh.castShadow = true;
-		this.teamBlueMesh.matrixAutoUpdate = false;
-
-		const coneRed = new Mesh( headGeometry, teamRedMaterial );
-		coneRed.castShadow = true;
-		coneRed.matrixAutoUpdate = false;
-
-		const coneBlue = new Mesh( headGeometry, teamBlueMaterial );
-		coneBlue.castShadow = true;
-		coneBlue.matrixAutoUpdate = false;
-
-		this.teamRedMesh.add( coneRed );
-		this.teamBlueMesh.add( coneBlue );
 
 	}
 
