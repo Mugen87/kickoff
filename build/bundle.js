@@ -66356,6 +66356,7 @@
 			* @type {Object}
 			*/
 			this.ui = {
+				loadingScreen: document.getElementById( 'loading-screen' ),
 				goalsBlue: document.getElementById( 'goals-blue' ),
 				goalsRed: document.getElementById( 'goals-red' )
 			};
@@ -66405,6 +66406,8 @@
 			}
 
 			this.time.reset();
+
+			this._hideLoadingScreen();
 
 			this._startAnimation();
 
@@ -66675,6 +66678,16 @@
 				statesHelpers.push( helper );
 
 			}
+
+		}
+
+		/**
+		* Hides the loading screen after the loading process.
+		*/
+		_hideLoadingScreen() {
+
+			this.ui.loadingScreen.classList.add( 'fade-out' );
+			this.ui.loadingScreen.addEventListener( 'transitionend', onTransitionEnd );
 
 		}
 
@@ -66981,6 +66994,14 @@
 	function sync( entity, renderComponent ) {
 
 		renderComponent.matrix.copy( entity.worldMatrix );
+
+	}
+
+	// removes the loading screen from the DOM
+
+	function onTransitionEnd( event ) {
+
+		event.target.remove();
 
 	}
 
