@@ -4,7 +4,7 @@
 }((function () { 'use strict';
 
 	// threejs.org/license
-	const REVISION = '123';
+	const REVISION = '124';
 	const CullFaceNone = 0;
 	const CullFaceBack = 1;
 	const CullFaceFront = 2;
@@ -168,7 +168,7 @@
 
 	const StaticDrawUsage = 35044;
 	const DynamicDrawUsage = 35048;
-	const GLSL3 = "300 es";
+	const GLSL3 = '300 es';
 
 	/**
 	 * https://github.com/mrdoob/eventdispatcher.js/
@@ -1186,6 +1186,8 @@
 				0, 0, 1
 			);
 
+			return this;
+
 		}
 
 		scale( sx, sy ) {
@@ -1653,7 +1655,7 @@
 
 	} );
 
-	Object.defineProperty( Texture.prototype, "needsUpdate", {
+	Object.defineProperty( Texture.prototype, 'needsUpdate', {
 
 		set: function ( value ) {
 
@@ -6592,12 +6594,12 @@
 
 			if ( object === this ) {
 
-				console.error( "THREE.Object3D.add: object can't be added as a child of itself.", object );
+				console.error( 'THREE.Object3D.add: object can\'t be added as a child of itself.', object );
 				return this;
 
 			}
 
-			if ( ( object && object.isObject3D ) ) {
+			if ( object && object.isObject3D ) {
 
 				if ( object.parent !== null ) {
 
@@ -6612,7 +6614,7 @@
 
 			} else {
 
-				console.error( "THREE.Object3D.add: object not an instance of THREE.Object3D.", object );
+				console.error( 'THREE.Object3D.add: object not an instance of THREE.Object3D.', object );
 
 			}
 
@@ -7905,27 +7907,27 @@
 					case 'rgb':
 					case 'rgba':
 
-						if ( color = /^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec( components ) ) {
+						if ( color = /^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*(\d*\.?\d+)\s*)?$/.exec( components ) ) {
 
 							// rgb(255,0,0) rgba(255,0,0,0.5)
 							this.r = Math.min( 255, parseInt( color[ 1 ], 10 ) ) / 255;
 							this.g = Math.min( 255, parseInt( color[ 2 ], 10 ) ) / 255;
 							this.b = Math.min( 255, parseInt( color[ 3 ], 10 ) ) / 255;
 
-							handleAlpha( color[ 5 ] );
+							handleAlpha( color[ 4 ] );
 
 							return this;
 
 						}
 
-						if ( color = /^(\d+)\%\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec( components ) ) {
+						if ( color = /^(\d+)\%\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(?:,\s*(\d*\.?\d+)\s*)?$/.exec( components ) ) {
 
 							// rgb(100%,0%,0%) rgba(100%,0%,0%,0.5)
 							this.r = Math.min( 100, parseInt( color[ 1 ], 10 ) ) / 100;
 							this.g = Math.min( 100, parseInt( color[ 2 ], 10 ) ) / 100;
 							this.b = Math.min( 100, parseInt( color[ 3 ], 10 ) ) / 100;
 
-							handleAlpha( color[ 5 ] );
+							handleAlpha( color[ 4 ] );
 
 							return this;
 
@@ -7936,14 +7938,14 @@
 					case 'hsl':
 					case 'hsla':
 
-						if ( color = /^([0-9]*\.?[0-9]+)\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec( components ) ) {
+						if ( color = /^(\d*\.?\d+)\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(?:,\s*(\d*\.?\d+)\s*)?$/.exec( components ) ) {
 
 							// hsl(120,50%,50%) hsla(120,50%,50%,0.5)
 							const h = parseFloat( color[ 1 ] ) / 360;
 							const s = parseInt( color[ 2 ], 10 ) / 100;
 							const l = parseInt( color[ 3 ], 10 ) / 100;
 
-							handleAlpha( color[ 5 ] );
+							handleAlpha( color[ 4 ] );
 
 							return this.setHSL( h, s, l );
 
@@ -7953,7 +7955,7 @@
 
 				}
 
-			} else if ( m = /^\#([A-Fa-f0-9]+)$/.exec( style ) ) {
+			} else if ( m = /^\#([A-Fa-f\d]+)$/.exec( style ) ) {
 
 				// hex color
 
@@ -8474,7 +8476,7 @@
 
 				if ( newValue === undefined ) {
 
-					console.warn( "THREE.Material: '" + key + "' parameter is undefined." );
+					console.warn( 'THREE.Material: \'' + key + '\' parameter is undefined.' );
 					continue;
 
 				}
@@ -8492,7 +8494,7 @@
 
 				if ( currentValue === undefined ) {
 
-					console.warn( "THREE." + this.type + ": '" + key + "' is not a property of this material." );
+					console.warn( 'THREE.' + this.type + ': \'' + key + '\' is not a property of this material.' );
 					continue;
 
 				}
@@ -11011,14 +11013,14 @@
 	const _intersectionPoint = new Vector3();
 	const _intersectionPointWorld = new Vector3();
 
-	function Mesh( geometry, material ) {
+	function Mesh( geometry = new BufferGeometry(), material = new MeshBasicMaterial() ) {
 
 		Object3D.call( this );
 
 		this.type = 'Mesh';
 
-		this.geometry = geometry !== undefined ? geometry : new BufferGeometry();
-		this.material = material !== undefined ? material : new MeshBasicMaterial();
+		this.geometry = geometry;
+		this.material = material;
 
 		this.updateMorphTargets();
 
@@ -15032,7 +15034,6 @@
 
 							const currentRenderList = renderer.getRenderList();
 							const currentRenderTarget = renderer.getRenderTarget();
-							const currentRenderState = renderer.getRenderState();
 
 							const renderTarget = new WebGLCubeRenderTarget( image.height / 2 );
 							renderTarget.fromEquirectangularTexture( renderer, texture );
@@ -15040,7 +15041,6 @@
 
 							renderer.setRenderTarget( currentRenderTarget );
 							renderer.setRenderList( currentRenderList );
-							renderer.setRenderState( currentRenderState );
 
 							texture.addEventListener( 'dispose', onTextureDispose );
 
@@ -15681,6 +15681,12 @@
 
 			if ( object.isInstancedMesh ) {
 
+				if ( object.hasEventListener( 'dispose', onInstancedMeshDispose ) === false ) {
+
+					object.addEventListener( 'dispose', onInstancedMeshDispose );
+
+				}
+
 				attributes.update( object.instanceMatrix, 34962 );
 
 				if ( object.instanceColor !== null ) {
@@ -15698,6 +15704,18 @@
 		function dispose() {
 
 			updateMap = new WeakMap();
+
+		}
+
+		function onInstancedMeshDispose( event ) {
+
+			const instancedMesh = event.target;
+
+			instancedMesh.removeEventListener( 'dispose', onInstancedMeshDispose );
+
+			attributes.remove( instancedMesh.instanceMatrix );
+
+			if ( instancedMesh.instanceColor !== null ) attributes.remove( instancedMesh.instanceColor );
 
 		}
 
@@ -16509,7 +16527,7 @@
 
 	// Parser - builds up the property tree from the path strings
 
-	const RePathPart = /([\w\d_]+)(\])?(\[|\.)?/g;
+	const RePathPart = /(\w+)(\])?(\[|\.)?/g;
 
 	// extracts
 	// 	- the identifier (member name or array index)
@@ -16915,19 +16933,19 @@
 
 	function generatePrecision( parameters ) {
 
-		let precisionstring = "precision " + parameters.precision + " float;\nprecision " + parameters.precision + " int;";
+		let precisionstring = 'precision ' + parameters.precision + ' float;\nprecision ' + parameters.precision + ' int;';
 
-		if ( parameters.precision === "highp" ) {
+		if ( parameters.precision === 'highp' ) {
 
-			precisionstring += "\n#define HIGH_PRECISION";
+			precisionstring += '\n#define HIGH_PRECISION';
 
-		} else if ( parameters.precision === "mediump" ) {
+		} else if ( parameters.precision === 'mediump' ) {
 
-			precisionstring += "\n#define MEDIUM_PRECISION";
+			precisionstring += '\n#define MEDIUM_PRECISION';
 
-		} else if ( parameters.precision === "lowp" ) {
+		} else if ( parameters.precision === 'lowp' ) {
 
-			precisionstring += "\n#define LOW_PRECISION";
+			precisionstring += '\n#define LOW_PRECISION';
 
 		}
 
@@ -17057,7 +17075,7 @@
 		const program = gl.createProgram();
 
 		let prefixVertex, prefixFragment;
-		let versionString = parameters.glslVersion ? '#version ' + parameters.glslVersion + "\n" : '';
+		let versionString = parameters.glslVersion ? '#version ' + parameters.glslVersion + '\n' : '';
 
 		if ( parameters.isRawShaderMaterial ) {
 
@@ -17536,19 +17554,19 @@
 		};
 
 		const parameterNames = [
-			"precision", "isWebGL2", "supportsVertexTextures", "outputEncoding", "instancing", "instancingColor",
-			"map", "mapEncoding", "matcap", "matcapEncoding", "envMap", "envMapMode", "envMapEncoding", "envMapCubeUV",
-			"lightMap", "lightMapEncoding", "aoMap", "emissiveMap", "emissiveMapEncoding", "bumpMap", "normalMap", "objectSpaceNormalMap", "tangentSpaceNormalMap", "clearcoatMap", "clearcoatRoughnessMap", "clearcoatNormalMap", "displacementMap", "specularMap",
-			"roughnessMap", "metalnessMap", "gradientMap",
-			"alphaMap", "combine", "vertexColors", "vertexTangents", "vertexUvs", "uvsVertexOnly", "fog", "useFog", "fogExp2",
-			"flatShading", "sizeAttenuation", "logarithmicDepthBuffer", "skinning",
-			"maxBones", "useVertexTexture", "morphTargets", "morphNormals",
-			"maxMorphTargets", "maxMorphNormals", "premultipliedAlpha",
-			"numDirLights", "numPointLights", "numSpotLights", "numHemiLights", "numRectAreaLights",
-			"numDirLightShadows", "numPointLightShadows", "numSpotLightShadows",
-			"shadowMapEnabled", "shadowMapType", "toneMapping", 'physicallyCorrectLights',
-			"alphaTest", "doubleSided", "flipSided", "numClippingPlanes", "numClipIntersection", "depthPacking", "dithering",
-			"sheen", "transmissionMap"
+			'precision', 'isWebGL2', 'supportsVertexTextures', 'outputEncoding', 'instancing', 'instancingColor',
+			'map', 'mapEncoding', 'matcap', 'matcapEncoding', 'envMap', 'envMapMode', 'envMapEncoding', 'envMapCubeUV',
+			'lightMap', 'lightMapEncoding', 'aoMap', 'emissiveMap', 'emissiveMapEncoding', 'bumpMap', 'normalMap', 'objectSpaceNormalMap', 'tangentSpaceNormalMap', 'clearcoatMap', 'clearcoatRoughnessMap', 'clearcoatNormalMap', 'displacementMap', 'specularMap',
+			'roughnessMap', 'metalnessMap', 'gradientMap',
+			'alphaMap', 'combine', 'vertexColors', 'vertexTangents', 'vertexUvs', 'uvsVertexOnly', 'fog', 'useFog', 'fogExp2',
+			'flatShading', 'sizeAttenuation', 'logarithmicDepthBuffer', 'skinning',
+			'maxBones', 'useVertexTexture', 'morphTargets', 'morphNormals',
+			'maxMorphTargets', 'maxMorphNormals', 'premultipliedAlpha',
+			'numDirLights', 'numPointLights', 'numSpotLights', 'numHemiLights', 'numRectAreaLights',
+			'numDirLightShadows', 'numPointLightShadows', 'numSpotLightShadows',
+			'shadowMapEnabled', 'shadowMapType', 'toneMapping', 'physicallyCorrectLights',
+			'alphaTest', 'doubleSided', 'flipSided', 'numClippingPlanes', 'numClipIntersection', 'depthPacking', 'dithering',
+			'sheen', 'transmissionMap'
 		];
 
 		function getMaxBones( object ) {
@@ -17591,18 +17609,18 @@
 
 			let encoding;
 
-			if ( ! map ) {
-
-				encoding = LinearEncoding;
-
-			} else if ( map.isTexture ) {
+			if ( map && map.isTexture ) {
 
 				encoding = map.encoding;
 
-			} else if ( map.isWebGLRenderTarget ) {
+			} else if ( map && map.isWebGLRenderTarget ) {
 
-				console.warn( "THREE.WebGLPrograms.getTextureEncodingFromMap: don't use render targets as textures. Use their .texture property instead." );
+				console.warn( 'THREE.WebGLPrograms.getTextureEncodingFromMap: don\'t use render targets as textures. Use their .texture property instead.' );
 				encoding = map.texture.encoding;
+
+			} else {
+
+				encoding = LinearEncoding;
 
 			}
 
@@ -18361,7 +18379,7 @@
 		const matrix4 = new Matrix4();
 		const matrix42 = new Matrix4();
 
-		function setup( lights, shadows, camera ) {
+		function setup( lights ) {
 
 			let r = 0, g = 0, b = 0;
 
@@ -18376,8 +18394,6 @@
 			let numDirectionalShadows = 0;
 			let numPointShadows = 0;
 			let numSpotShadows = 0;
-
-			const viewMatrix = camera.matrixWorldInverse;
 
 			lights.sort( shadowCastingLightsFirst );
 
@@ -18410,10 +18426,6 @@
 					const uniforms = cache.get( light );
 
 					uniforms.color.copy( light.color ).multiplyScalar( light.intensity );
-					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-					vector3.setFromMatrixPosition( light.target.matrixWorld );
-					uniforms.direction.sub( vector3 );
-					uniforms.direction.transformDirection( viewMatrix );
 
 					if ( light.castShadow ) {
 
@@ -18443,15 +18455,9 @@
 					const uniforms = cache.get( light );
 
 					uniforms.position.setFromMatrixPosition( light.matrixWorld );
-					uniforms.position.applyMatrix4( viewMatrix );
 
 					uniforms.color.copy( color ).multiplyScalar( intensity );
 					uniforms.distance = distance;
-
-					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-					vector3.setFromMatrixPosition( light.target.matrixWorld );
-					uniforms.direction.sub( vector3 );
-					uniforms.direction.transformDirection( viewMatrix );
 
 					uniforms.coneCos = Math.cos( light.angle );
 					uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
@@ -18490,23 +18496,8 @@
 					// (b) intensity is the brightness of the light
 					uniforms.color.copy( color ).multiplyScalar( intensity );
 
-					uniforms.position.setFromMatrixPosition( light.matrixWorld );
-					uniforms.position.applyMatrix4( viewMatrix );
-
-					// extract local rotation of light to derive width/height half vectors
-					matrix42.identity();
-					matrix4.copy( light.matrixWorld );
-					matrix4.premultiply( viewMatrix );
-					matrix42.extractRotation( matrix4 );
-
 					uniforms.halfWidth.set( light.width * 0.5, 0.0, 0.0 );
 					uniforms.halfHeight.set( 0.0, light.height * 0.5, 0.0 );
-
-					uniforms.halfWidth.applyMatrix4( matrix42 );
-					uniforms.halfHeight.applyMatrix4( matrix42 );
-
-					// TODO (abelnation): RectAreaLight distance?
-					// uniforms.distance = distance;
 
 					state.rectArea[ rectAreaLength ] = uniforms;
 
@@ -18515,9 +18506,6 @@
 				} else if ( light.isPointLight ) {
 
 					const uniforms = cache.get( light );
-
-					uniforms.position.setFromMatrixPosition( light.matrixWorld );
-					uniforms.position.applyMatrix4( viewMatrix );
 
 					uniforms.color.copy( light.color ).multiplyScalar( light.intensity );
 					uniforms.distance = light.distance;
@@ -18551,10 +18539,6 @@
 				} else if ( light.isHemisphereLight ) {
 
 					const uniforms = cache.get( light );
-
-					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-					uniforms.direction.transformDirection( viewMatrix );
-					uniforms.direction.normalize();
 
 					uniforms.skyColor.copy( light.color ).multiplyScalar( intensity );
 					uniforms.groundColor.copy( light.groundColor ).multiplyScalar( intensity );
@@ -18647,8 +18631,94 @@
 
 		}
 
+		function setupView( lights, camera ) {
+
+			let directionalLength = 0;
+			let pointLength = 0;
+			let spotLength = 0;
+			let rectAreaLength = 0;
+			let hemiLength = 0;
+
+			const viewMatrix = camera.matrixWorldInverse;
+
+			for ( let i = 0, l = lights.length; i < l; i ++ ) {
+
+				const light = lights[ i ];
+
+				if ( light.isDirectionalLight ) {
+
+					const uniforms = state.directional[ directionalLength ];
+
+					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+					vector3.setFromMatrixPosition( light.target.matrixWorld );
+					uniforms.direction.sub( vector3 );
+					uniforms.direction.transformDirection( viewMatrix );
+
+					directionalLength ++;
+
+				} else if ( light.isSpotLight ) {
+
+					const uniforms = state.spot[ spotLength ];
+
+					uniforms.position.setFromMatrixPosition( light.matrixWorld );
+					uniforms.position.applyMatrix4( viewMatrix );
+
+					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+					vector3.setFromMatrixPosition( light.target.matrixWorld );
+					uniforms.direction.sub( vector3 );
+					uniforms.direction.transformDirection( viewMatrix );
+
+					spotLength ++;
+
+				} else if ( light.isRectAreaLight ) {
+
+					const uniforms = state.rectArea[ rectAreaLength ];
+
+					uniforms.position.setFromMatrixPosition( light.matrixWorld );
+					uniforms.position.applyMatrix4( viewMatrix );
+
+					// extract local rotation of light to derive width/height half vectors
+					matrix42.identity();
+					matrix4.copy( light.matrixWorld );
+					matrix4.premultiply( viewMatrix );
+					matrix42.extractRotation( matrix4 );
+
+					uniforms.halfWidth.set( light.width * 0.5, 0.0, 0.0 );
+					uniforms.halfHeight.set( 0.0, light.height * 0.5, 0.0 );
+
+					uniforms.halfWidth.applyMatrix4( matrix42 );
+					uniforms.halfHeight.applyMatrix4( matrix42 );
+
+					rectAreaLength ++;
+
+				} else if ( light.isPointLight ) {
+
+					const uniforms = state.point[ pointLength ];
+
+					uniforms.position.setFromMatrixPosition( light.matrixWorld );
+					uniforms.position.applyMatrix4( viewMatrix );
+
+					pointLength ++;
+
+				} else if ( light.isHemisphereLight ) {
+
+					const uniforms = state.hemi[ hemiLength ];
+
+					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+					uniforms.direction.transformDirection( viewMatrix );
+					uniforms.direction.normalize();
+
+					hemiLength ++;
+
+				}
+
+			}
+
+		}
+
 		return {
 			setup: setup,
+			setupView: setupView,
 			state: state
 		};
 
@@ -18680,9 +18750,15 @@
 
 		}
 
-		function setupLights( camera ) {
+		function setupLights() {
 
-			lights.setup( lightsArray, shadowsArray, camera );
+			lights.setup( lightsArray );
+
+		}
+
+		function setupLightsView( camera ) {
+
+			lights.setupView( lightsArray, camera );
 
 		}
 
@@ -18697,6 +18773,7 @@
 			init: init,
 			state: state,
 			setupLights: setupLights,
+			setupLightsView: setupLightsView,
 
 			pushLight: pushLight,
 			pushShadow: pushShadow
@@ -18708,26 +18785,26 @@
 
 		let renderStates = new WeakMap();
 
-		function get( scene, camera ) {
+		function get( scene, renderCallDepth = 0 ) {
 
 			let renderState;
 
 			if ( renderStates.has( scene ) === false ) {
 
 				renderState = new WebGLRenderState( extensions, capabilities );
-				renderStates.set( scene, new WeakMap() );
-				renderStates.get( scene ).set( camera, renderState );
+				renderStates.set( scene, [] );
+				renderStates.get( scene ).push( renderState );
 
 			} else {
 
-				if ( renderStates.get( scene ).has( camera ) === false ) {
+				if ( renderCallDepth >= renderStates.get( scene ).length ) {
 
 					renderState = new WebGLRenderState( extensions, capabilities );
-					renderStates.get( scene ).set( camera, renderState );
+					renderStates.get( scene ).push( renderState );
 
 				} else {
 
-					renderState = renderStates.get( scene ).get( camera );
+					renderState = renderStates.get( scene )[ renderCallDepth ];
 
 				}
 
@@ -18901,7 +18978,7 @@
 
 	};
 
-	var vsm_frag = "uniform sampler2D shadow_pass;\nuniform vec2 resolution;\nuniform float radius;\n#include <packing>\nvoid main() {\n\tfloat mean = 0.0;\n\tfloat squared_mean = 0.0;\n\tfloat depth = unpackRGBAToDepth( texture2D( shadow_pass, ( gl_FragCoord.xy ) / resolution ) );\n\tfor ( float i = -1.0; i < 1.0 ; i += SAMPLE_RATE) {\n\t\t#ifdef HORIZONAL_PASS\n\t\t\tvec2 distribution = unpackRGBATo2Half( texture2D( shadow_pass, ( gl_FragCoord.xy + vec2( i, 0.0 ) * radius ) / resolution ) );\n\t\t\tmean += distribution.x;\n\t\t\tsquared_mean += distribution.y * distribution.y + distribution.x * distribution.x;\n\t\t#else\n\t\t\tfloat depth = unpackRGBAToDepth( texture2D( shadow_pass, ( gl_FragCoord.xy + vec2( 0.0, i ) * radius ) / resolution ) );\n\t\t\tmean += depth;\n\t\t\tsquared_mean += depth * depth;\n\t\t#endif\n\t}\n\tmean = mean * HALF_SAMPLE_RATE;\n\tsquared_mean = squared_mean * HALF_SAMPLE_RATE;\n\tfloat std_dev = sqrt( squared_mean - mean * mean );\n\tgl_FragColor = pack2HalfToRGBA( vec2( mean, std_dev ) );\n}";
+	var vsm_frag = "uniform sampler2D shadow_pass;\nuniform vec2 resolution;\nuniform float radius;\n#include <packing>\nvoid main() {\n\tfloat mean = 0.0;\n\tfloat squared_mean = 0.0;\n\tfloat depth = unpackRGBAToDepth( texture2D( shadow_pass, ( gl_FragCoord.xy ) / resolution ) );\n\tfor ( float i = -1.0; i < 1.0 ; i += SAMPLE_RATE) {\n\t\t#ifdef HORIZONTAL_PASS\n\t\t\tvec2 distribution = unpackRGBATo2Half( texture2D( shadow_pass, ( gl_FragCoord.xy + vec2( i, 0.0 ) * radius ) / resolution ) );\n\t\t\tmean += distribution.x;\n\t\t\tsquared_mean += distribution.y * distribution.y + distribution.x * distribution.x;\n\t\t#else\n\t\t\tfloat depth = unpackRGBAToDepth( texture2D( shadow_pass, ( gl_FragCoord.xy + vec2( 0.0, i ) * radius ) / resolution ) );\n\t\t\tmean += depth;\n\t\t\tsquared_mean += depth * depth;\n\t\t#endif\n\t}\n\tmean = mean * HALF_SAMPLE_RATE;\n\tsquared_mean = squared_mean * HALF_SAMPLE_RATE;\n\tfloat std_dev = sqrt( squared_mean - mean * mean );\n\tgl_FragColor = pack2HalfToRGBA( vec2( mean, std_dev ) );\n}";
 
 	var vsm_vert = "void main() {\n\tgl_Position = vec4( position, 1.0 );\n}";
 
@@ -18940,12 +19017,12 @@
 
 		} );
 
-		const shadowMaterialHorizonal = shadowMaterialVertical.clone();
-		shadowMaterialHorizonal.defines.HORIZONAL_PASS = 1;
+		const shadowMaterialHorizontal = shadowMaterialVertical.clone();
+		shadowMaterialHorizontal.defines.HORIZONTAL_PASS = 1;
 
 		const fullScreenTri = new BufferGeometry();
 		fullScreenTri.setAttribute(
-			"position",
+			'position',
 			new BufferAttribute(
 				new Float32Array( [ - 1, - 1, 0.5, 3, - 1, 0.5, - 1, 3, 0.5 ] ),
 				3
@@ -19031,7 +19108,7 @@
 					const pars = { minFilter: LinearFilter, magFilter: LinearFilter, format: RGBAFormat };
 
 					shadow.map = new WebGLRenderTarget( _shadowMapSize.x, _shadowMapSize.y, pars );
-					shadow.map.texture.name = light.name + ".shadowMap";
+					shadow.map.texture.name = light.name + '.shadowMap';
 
 					shadow.mapPass = new WebGLRenderTarget( _shadowMapSize.x, _shadowMapSize.y, pars );
 
@@ -19044,7 +19121,7 @@
 					const pars = { minFilter: NearestFilter, magFilter: NearestFilter, format: RGBAFormat };
 
 					shadow.map = new WebGLRenderTarget( _shadowMapSize.x, _shadowMapSize.y, pars );
-					shadow.map.texture.name = light.name + ".shadowMap";
+					shadow.map.texture.name = light.name + '.shadowMap';
 
 					shadow.camera.updateProjectionMatrix();
 
@@ -19107,14 +19184,14 @@
 			_renderer.clear();
 			_renderer.renderBufferDirect( camera, null, geometry, shadowMaterialVertical, fullScreenMesh, null );
 
-			// horizonal pass
+			// horizontal pass
 
-			shadowMaterialHorizonal.uniforms.shadow_pass.value = shadow.mapPass.texture;
-			shadowMaterialHorizonal.uniforms.resolution.value = shadow.mapSize;
-			shadowMaterialHorizonal.uniforms.radius.value = shadow.radius;
+			shadowMaterialHorizontal.uniforms.shadow_pass.value = shadow.mapPass.texture;
+			shadowMaterialHorizontal.uniforms.resolution.value = shadow.mapSize;
+			shadowMaterialHorizontal.uniforms.radius.value = shadow.radius;
 			_renderer.setRenderTarget( shadow.map );
 			_renderer.clear();
-			_renderer.renderBufferDirect( camera, null, geometry, shadowMaterialHorizonal, fullScreenMesh, null );
+			_renderer.renderBufferDirect( camera, null, geometry, shadowMaterialHorizontal, fullScreenMesh, null );
 
 		}
 
@@ -19680,12 +19757,12 @@
 
 		if ( glVersion.indexOf( 'WebGL' ) !== - 1 ) {
 
-			version = parseFloat( /^WebGL\ ([0-9])/.exec( glVersion )[ 1 ] );
+			version = parseFloat( /^WebGL (\d)/.exec( glVersion )[ 1 ] );
 			lineWidthAvailable = ( version >= 1.0 );
 
 		} else if ( glVersion.indexOf( 'OpenGL ES' ) !== - 1 ) {
 
-			version = parseFloat( /^OpenGL\ ES\ ([0-9])/.exec( glVersion )[ 1 ] );
+			version = parseFloat( /^OpenGL ES (\d)/.exec( glVersion )[ 1 ] );
 			lineWidthAvailable = ( version >= 2.0 );
 
 		}
@@ -20304,7 +20381,7 @@
 		try {
 
 			useOffscreenCanvas = typeof OffscreenCanvas !== 'undefined'
-				&& ( new OffscreenCanvas( 1, 1 ).getContext( "2d" ) ) !== null;
+				&& ( new OffscreenCanvas( 1, 1 ).getContext( '2d' ) ) !== null;
 
 		} catch ( err ) {
 
@@ -21500,7 +21577,7 @@
 
 				if ( warnedTexture2D === false ) {
 
-					console.warn( "THREE.WebGLTextures.safeSetTexture2D: don't use render targets as textures. Use their .texture property instead." );
+					console.warn( 'THREE.WebGLTextures.safeSetTexture2D: don\'t use render targets as textures. Use their .texture property instead.' );
 					warnedTexture2D = true;
 
 				}
@@ -21519,7 +21596,7 @@
 
 				if ( warnedTextureCube === false ) {
 
-					console.warn( "THREE.WebGLTextures.safeSetTextureCube: don't use cube render targets as textures. Use their .texture property instead." );
+					console.warn( 'THREE.WebGLTextures.safeSetTextureCube: don\'t use cube render targets as textures. Use their .texture property instead.' );
 					warnedTextureCube = true;
 
 				}
@@ -21947,7 +22024,7 @@
 
 								hand.inputState.pinching = false;
 								this.dispatchEvent( {
-									type: "pinchend",
+									type: 'pinchend',
 									handedness: inputSource.handedness,
 									target: this
 								} );
@@ -21956,7 +22033,7 @@
 
 								hand.inputState.pinching = true;
 								this.dispatchEvent( {
-									type: "pinchstart",
+									type: 'pinchstart',
 									handedness: inputSource.handedness,
 									target: this
 								} );
@@ -23226,6 +23303,11 @@
 		let currentRenderList = null;
 		let currentRenderState = null;
 
+		// render() can be called from within a callback triggered by another render.
+		// We track this so that the nested render call gets its state isolated from the parent render call.
+
+		const renderStateStack = [];
+
 		// public properties
 
 		this.domElement = _canvas;
@@ -23292,7 +23374,6 @@
 		let _currentMaterialId = - 1;
 
 		let _currentCamera = null;
-		let _currentArrayCamera = null;
 
 		const _currentViewport = new Vector4();
 		const _currentScissor = new Vector4();
@@ -23692,9 +23773,17 @@
 
 		// Clearing
 
-		this.getClearColor = function () {
+		this.getClearColor = function ( target ) {
 
-			return background.getClearColor();
+			if ( target === undefined ) {
+
+				console.warn( 'WebGLRenderer: .getClearColor() now requires a Color as an argument' );
+
+				target = new Color();
+
+			}
+
+			return target.copy( background.getClearColor() );
 
 		};
 
@@ -24038,7 +24127,7 @@
 
 		this.compile = function ( scene, camera ) {
 
-			currentRenderState = renderStates.get( scene, camera );
+			currentRenderState = renderStates.get( scene );
 			currentRenderState.init();
 
 			scene.traverseVisible( function ( object ) {
@@ -24057,7 +24146,7 @@
 
 			} );
 
-			currentRenderState.setupLights( camera );
+			currentRenderState.setupLights();
 
 			const compiled = new WeakMap();
 
@@ -24172,8 +24261,10 @@
 			//
 			if ( scene.isScene === true ) scene.onBeforeRender( _this, scene, camera, renderTarget || _currentRenderTarget );
 
-			currentRenderState = renderStates.get( scene, camera );
+			currentRenderState = renderStates.get( scene, renderStateStack.length );
 			currentRenderState.init();
+
+			renderStateStack.push( currentRenderState );
 
 			_projScreenMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
 			_frustum.setFromProjectionMatrix( _projScreenMatrix );
@@ -24202,7 +24293,8 @@
 
 			shadowMap.render( shadowsArray, scene, camera );
 
-			currentRenderState.setupLights( camera );
+			currentRenderState.setupLights();
+			currentRenderState.setupLightsView( camera );
 
 			if ( _clippingEnabled === true ) clipping.endShadows();
 
@@ -24256,8 +24348,18 @@
 
 			// _gl.finish();
 
+			renderStateStack.pop();
+			if ( renderStateStack.length > 0 ) {
+
+				currentRenderState = renderStateStack[ renderStateStack.length - 1 ];
+
+			} else {
+
+				currentRenderState = null;
+
+			}
+
 			currentRenderList = null;
-			currentRenderState = null;
 
 		};
 
@@ -24401,8 +24503,6 @@
 
 				if ( camera.isArrayCamera ) {
 
-					_currentArrayCamera = camera;
-
 					const cameras = camera.cameras;
 
 					for ( let j = 0, jl = cameras.length; j < jl; j ++ ) {
@@ -24413,7 +24513,7 @@
 
 							state.viewport( _currentViewport.copy( camera2.viewport ) );
 
-							currentRenderState.setupLights( camera2 );
+							currentRenderState.setupLightsView( camera2 );
 
 							renderObject( object, scene, camera2, geometry, material, group );
 
@@ -24422,8 +24522,6 @@
 					}
 
 				} else {
-
-					_currentArrayCamera = null;
 
 					renderObject( object, scene, camera, geometry, material, group );
 
@@ -24436,7 +24534,6 @@
 		function renderObject( object, scene, camera, geometry, material, group ) {
 
 			object.onBeforeRender( _this, scene, camera, geometry, material, group );
-			currentRenderState = renderStates.get( scene, _currentArrayCamera || camera );
 
 			object.modelViewMatrix.multiplyMatrices( camera.matrixWorldInverse, object.matrixWorld );
 			object.normalMatrix.getNormalMatrix( object.modelViewMatrix );
@@ -24458,7 +24555,6 @@
 			}
 
 			object.onAfterRender( _this, scene, camera, geometry, material, group );
-			currentRenderState = renderStates.get( scene, _currentArrayCamera || camera );
 
 		}
 
@@ -24917,18 +25013,6 @@
 
 		};
 
-		this.getRenderState = function () {
-
-			return currentRenderState;
-
-		};
-
-		this.setRenderState = function ( renderState ) {
-
-			currentRenderState = renderState;
-
-		};
-
 		this.getRenderTarget = function () {
 
 			return _currentRenderTarget;
@@ -25142,6 +25226,13 @@
 			textures.setTexture2D( texture, 0 );
 
 			state.unbindTexture();
+
+		};
+
+		this.resetState = function () {
+
+			state.reset();
+			bindingStates.reset();
 
 		};
 
@@ -26083,6 +26174,14 @@
 
 	} );
 
+	const _basePosition = new Vector3();
+
+	const _skinIndex = new Vector4();
+	const _skinWeight = new Vector4();
+
+	const _vector$7 = new Vector3();
+	const _matrix$1 = new Matrix4();
+
 	function SkinnedMesh( geometry, material ) {
 
 		if ( geometry && geometry.isGeometry ) {
@@ -26197,49 +26296,37 @@
 
 		},
 
-		boneTransform: ( function () {
+		boneTransform: function ( index, target ) {
 
-			const basePosition = new Vector3();
+			const skeleton = this.skeleton;
+			const geometry = this.geometry;
 
-			const skinIndex = new Vector4();
-			const skinWeight = new Vector4();
+			_skinIndex.fromBufferAttribute( geometry.attributes.skinIndex, index );
+			_skinWeight.fromBufferAttribute( geometry.attributes.skinWeight, index );
 
-			const vector = new Vector3();
-			const matrix = new Matrix4();
+			_basePosition.fromBufferAttribute( geometry.attributes.position, index ).applyMatrix4( this.bindMatrix );
 
-			return function ( index, target ) {
+			target.set( 0, 0, 0 );
 
-				const skeleton = this.skeleton;
-				const geometry = this.geometry;
+			for ( let i = 0; i < 4; i ++ ) {
 
-				skinIndex.fromBufferAttribute( geometry.attributes.skinIndex, index );
-				skinWeight.fromBufferAttribute( geometry.attributes.skinWeight, index );
+				const weight = _skinWeight.getComponent( i );
 
-				basePosition.fromBufferAttribute( geometry.attributes.position, index ).applyMatrix4( this.bindMatrix );
+				if ( weight !== 0 ) {
 
-				target.set( 0, 0, 0 );
+					const boneIndex = _skinIndex.getComponent( i );
 
-				for ( let i = 0; i < 4; i ++ ) {
+					_matrix$1.multiplyMatrices( skeleton.bones[ boneIndex ].matrixWorld, skeleton.boneInverses[ boneIndex ] );
 
-					const weight = skinWeight.getComponent( i );
-
-					if ( weight !== 0 ) {
-
-						const boneIndex = skinIndex.getComponent( i );
-
-						matrix.multiplyMatrices( skeleton.bones[ boneIndex ].matrixWorld, skeleton.boneInverses[ boneIndex ] );
-
-						target.addScaledVector( vector.copy( basePosition ).applyMatrix4( matrix ), weight );
-
-					}
+					target.addScaledVector( _vector$7.copy( _basePosition ).applyMatrix4( _matrix$1 ), weight );
 
 				}
 
-				return target.applyMatrix4( this.bindMatrixInverse );
+			}
 
-			};
+			return target.applyMatrix4( this.bindMatrixInverse );
 
-		}() )
+		}
 
 	} );
 
@@ -26613,6 +26700,12 @@
 
 		updateMorphTargets: function () {
 
+		},
+
+		dispose: function () {
+
+			this.dispatchEvent( { type: 'dispose' } );
+
 		}
 
 	} );
@@ -26673,20 +26766,14 @@
 	const _ray$1 = new Ray();
 	const _sphere$2 = new Sphere();
 
-	function Line( geometry, material, mode ) {
-
-		if ( mode === 1 ) {
-
-			console.error( 'THREE.Line: parameter THREE.LinePieces no longer supported. Use THREE.LineSegments instead.' );
-
-		}
+	function Line( geometry = new BufferGeometry(), material = new LineBasicMaterial() ) {
 
 		Object3D.call( this );
 
 		this.type = 'Line';
 
-		this.geometry = geometry !== undefined ? geometry : new BufferGeometry();
-		this.material = material !== undefined ? material : new LineBasicMaterial();
+		this.geometry = geometry;
+		this.material = material;
 
 		this.updateMorphTargets();
 
@@ -27101,14 +27188,14 @@
 	const _sphere$3 = new Sphere();
 	const _position$1 = new Vector3();
 
-	function Points( geometry, material ) {
+	function Points( geometry = new BufferGeometry(), material = new PointsMaterial() ) {
 
 		Object3D.call( this );
 
 		this.type = 'Points';
 
-		this.geometry = geometry !== undefined ? geometry : new BufferGeometry();
-		this.material = material !== undefined ? material : new PointsMaterial();
+		this.geometry = geometry;
+		this.material = material;
 
 		this.updateMorphTargets();
 
@@ -30100,7 +30187,7 @@
 
 				function scalePt2( pt, vec, size ) {
 
-					if ( ! vec ) console.error( "THREE.ExtrudeGeometry: vec does not exist" );
+					if ( ! vec ) console.error( 'THREE.ExtrudeGeometry: vec does not exist' );
 
 					return vec.clone().multiplyScalar( size ).add( pt );
 
@@ -33206,8 +33293,8 @@
 
 			if ( factoryMethod === undefined ) {
 
-				const message = "unsupported interpolation for " +
-					this.ValueTypeName + " keyframe track named " + this.name;
+				const message = 'unsupported interpolation for ' +
+					this.ValueTypeName + ' keyframe track named ' + this.name;
 
 				if ( this.createInterpolant === undefined ) {
 
@@ -33738,12 +33825,12 @@
 
 	} );
 
-	function AnimationClip( name, duration, tracks, blendMode ) {
+	function AnimationClip( name, duration = - 1, tracks, blendMode = NormalAnimationBlendMode ) {
 
 		this.name = name;
 		this.tracks = tracks;
-		this.duration = ( duration !== undefined ) ? duration : - 1;
-		this.blendMode = ( blendMode !== undefined ) ? blendMode : NormalAnimationBlendMode;
+		this.duration = duration;
+		this.blendMode = blendMode;
 
 		this.uuid = MathUtils.generateUUID();
 
@@ -34825,7 +34912,6 @@
 			const images = [];
 
 			const texture = new CompressedTexture();
-			texture.image = images;
 
 			const loader = new FileLoader( this.manager );
 			loader.setPath( this.path );
@@ -34852,9 +34938,9 @@
 
 					if ( loaded === 6 ) {
 
-						if ( texDatas.mipmapCount === 1 )
-							texture.minFilter = LinearFilter;
+						if ( texDatas.mipmapCount === 1 ) texture.minFilter = LinearFilter;
 
+						texture.image = images;
 						texture.format = texDatas.format;
 						texture.needsUpdate = true;
 
@@ -34900,6 +34986,8 @@
 							}
 
 						}
+
+						texture.image = images;
 
 					} else {
 
@@ -37625,7 +37713,7 @@
 
 	} );
 
-	function OrthographicCamera( left, right, top, bottom, near, far ) {
+	function OrthographicCamera( left = - 1, right = 1, top = 1, bottom = - 1, near = 0.1, far = 2000 ) {
 
 		Camera.call( this );
 
@@ -37634,13 +37722,13 @@
 		this.zoom = 1;
 		this.view = null;
 
-		this.left = ( left !== undefined ) ? left : - 1;
-		this.right = ( right !== undefined ) ? right : 1;
-		this.top = ( top !== undefined ) ? top : 1;
-		this.bottom = ( bottom !== undefined ) ? bottom : - 1;
+		this.left = left;
+		this.right = right;
+		this.top = top;
+		this.bottom = bottom;
 
-		this.near = ( near !== undefined ) ? near : 0.1;
-		this.far = ( far !== undefined ) ? far : 2000;
+		this.near = near;
+		this.far = far;
 
 		this.updateProjectionMatrix();
 
@@ -40511,7 +40599,7 @@
 
 		findNode: function ( root, nodeName ) {
 
-			if ( ! nodeName || nodeName === "" || nodeName === "." || nodeName === - 1 || nodeName === root.name || nodeName === root.uuid ) {
+			if ( ! nodeName || nodeName === '' || nodeName === '.' || nodeName === - 1 || nodeName === root.name || nodeName === root.uuid ) {
 
 				return root;
 
@@ -40914,7 +41002,7 @@
 
 				// access a sub element of the property array (only primitives are supported right now)
 
-				if ( propertyName === "morphTargetInfluences" ) {
+				if ( propertyName === 'morphTargetInfluences' ) {
 
 					// potential optimization, skip this if propertyIndex is already an integer, and convert the integer string to a true integer.
 
@@ -43043,13 +43131,13 @@
 
 		setFromCamera: function ( coords, camera ) {
 
-			if ( ( camera && camera.isPerspectiveCamera ) ) {
+			if ( camera && camera.isPerspectiveCamera ) {
 
 				this.ray.origin.setFromMatrixPosition( camera.matrixWorld );
 				this.ray.direction.set( coords.x, coords.y, 0.5 ).unproject( camera ).sub( this.ray.origin ).normalize();
 				this.camera = camera;
 
-			} else if ( ( camera && camera.isOrthographicCamera ) ) {
+			} else if ( camera && camera.isOrthographicCamera ) {
 
 				this.ray.origin.set( coords.x, coords.y, ( camera.near + camera.far ) / ( camera.near - camera.far ) ).unproject( camera ); // set origin in plane of camera
 				this.ray.direction.set( 0, 0, - 1 ).transformDirection( camera.matrixWorld );
@@ -43057,7 +43145,7 @@
 
 			} else {
 
-				console.error( 'THREE.Raycaster: Unsupported camera type.' );
+				console.error( 'THREE.Raycaster: Unsupported camera type: ' + camera.type );
 
 			}
 
@@ -43100,7 +43188,7 @@
 
 	} );
 
-	const _vector$7 = /*@__PURE__*/ new Vector2();
+	const _vector$8 = /*@__PURE__*/ new Vector2();
 
 	class Box2 {
 
@@ -43138,7 +43226,7 @@
 
 		setFromCenterAndSize( center, size ) {
 
-			const halfSize = _vector$7.copy( size ).multiplyScalar( 0.5 );
+			const halfSize = _vector$8.copy( size ).multiplyScalar( 0.5 );
 			this.min.copy( center ).sub( halfSize );
 			this.max.copy( center ).add( halfSize );
 
@@ -43288,7 +43376,7 @@
 
 		distanceToPoint( point ) {
 
-			const clampedPoint = _vector$7.copy( point ).clamp( this.min, this.max );
+			const clampedPoint = _vector$8.copy( point ).clamp( this.min, this.max );
 			return clampedPoint.sub( point ).length();
 
 		}
@@ -43677,7 +43765,7 @@
 
 		flattenToArrayOffset: function ( array, offset ) {
 
-			console.warn( "THREE.Matrix3: .flattenToArrayOffset() has been deprecated. Use .toArray() instead." );
+			console.warn( 'THREE.Matrix3: .flattenToArrayOffset() has been deprecated. Use .toArray() instead.' );
 			return this.toArray( array, offset );
 
 		},
@@ -43722,7 +43810,7 @@
 		},
 		flattenToArrayOffset: function ( array, offset ) {
 
-			console.warn( "THREE.Matrix4: .flattenToArrayOffset() has been deprecated. Use .toArray() instead." );
+			console.warn( 'THREE.Matrix4: .flattenToArrayOffset() has been deprecated. Use .toArray() instead.' );
 			return this.toArray( array, offset );
 
 		},
@@ -44212,8 +44300,8 @@
 
 	PerspectiveCamera.prototype.setLens = function ( focalLength, filmGauge ) {
 
-		console.warn( "THREE.PerspectiveCamera.setLens is deprecated. " +
-				"Use .setFocalLength and .filmGauge for a photographic setup." );
+		console.warn( 'THREE.PerspectiveCamera.setLens is deprecated. ' +
+				'Use .setFocalLength and .filmGauge for a photographic setup.' );
 
 		if ( filmGauge !== undefined ) this.filmGauge = filmGauge;
 		this.setFocalLength( focalLength );
@@ -45271,7 +45359,7 @@
 	 * @license
 	 * The MIT License
 	 *
-	 * Copyright © 2020 Yuka authors
+	 * Copyright © 2021 Yuka authors
 	 *
 	 * Permission is hereby granted, free of charge, to any person obtaining a copy
 	 * of this software and associated documentation files (the "Software"), to deal
@@ -45315,31 +45403,31 @@
 
 			/**
 			* The sender.
-			* @type GameEntity
+			* @type {GameEntity}
 			*/
 			this.sender = sender;
 
 			/**
 			* The receiver.
-			* @type GameEntity
+			* @type {GameEntity}
 			*/
 			this.receiver = receiver;
 
 			/**
 			* The actual message.
-			* @type String
+			* @type {String}
 			*/
 			this.message = message;
 
 			/**
 			* A time value in millisecond used to delay the message dispatching.
-			* @type Number
+			* @type {Number}
 			*/
 			this.delay = delay;
 
 			/**
 			* An object for custom data.
-			* @type Object
+			* @type {Object}
 			*/
 			this.data = data;
 
@@ -45482,7 +45570,7 @@
 
 			/**
 			* A list of delayed telegrams.
-			* @type Array
+			* @type {Array<Telegram>}
 			* @readonly
 			*/
 			this.delayedTelegrams = new Array();
@@ -45766,19 +45854,19 @@
 
 			/**
 			* The x component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.x = x;
 
 			/**
 			* The y component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.y = y;
 
 			/**
 			* The z component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.z = z;
 
@@ -46385,7 +46473,7 @@
 		/**
 		* Sets the components of this 3D vector from an array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
 		* @return {Vector3} A reference to this vector.
 		*/
@@ -46402,9 +46490,9 @@
 		/**
 		* Copies all values of this 3D vector to the given array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
-		* @return {Array} The array with the 3D vector components.
+		* @return {Array<Number>} The array with the 3D vector components.
 		*/
 		toArray( array, offset = 0 ) {
 
@@ -46457,7 +46545,7 @@
 
 			/**
 			* The elements of the matrix in column-major order.
-			* @type Array
+			* @type {Array<Number>}
 			*/
 			this.elements = [
 
@@ -46949,7 +47037,7 @@
 		/**
 		* Sets the elements of this matrix from an array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
 		* @return {Matrix3} A reference to this matrix.
 		*/
@@ -46970,9 +47058,9 @@
 		/**
 		* Copies all elements of this matrix to the given array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
-		* @return {Array} The array with the elements of the matrix.
+		* @return {Array<Number>} The array with the elements of the matrix.
 		*/
 		toArray( array, offset = 0 ) {
 
@@ -47042,25 +47130,25 @@
 
 			/**
 			* The x component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.x = x;
 
 			/**
 			* The y component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.y = y;
 
 			/**
 			* The z component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.z = z;
 
 			/**
 			* The w component.
-			* @type Number
+			* @type {Number}
 			*/
 			this.w = w;
 
@@ -47536,7 +47624,7 @@
 		/**
 		* Sets the components of this quaternion from an array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
 		* @return {Quaternion} A reference to this quaternion.
 		*/
@@ -47554,9 +47642,9 @@
 		/**
 		* Copies all values of this quaternion to the given array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
-		* @return {Array} The array with the quaternion components.
+		* @return {Array<Number>} The array with the quaternion components.
 		*/
 		toArray( array, offset = 0 ) {
 
@@ -47598,7 +47686,7 @@
 
 			/**
 			* The elements of the matrix in column-major order.
-			* @type Array
+			* @type {Array<Number>}
 			*/
 			this.elements = [
 
@@ -48057,7 +48145,7 @@
 		/**
 		* Sets the elements of this matrix from an array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
 		* @return {Matrix4} A reference to this matrix.
 		*/
@@ -48078,9 +48166,9 @@
 		/**
 		* Copies all elements of this matrix to the given array.
 		*
-		* @param {Array} array - An array.
+		* @param {Array<Number>} array - An array.
 		* @param {Number} offset - An optional offset.
-		* @return {Array} The array with the elements of the matrix.
+		* @return {Array<Number>} The array with the elements of the matrix.
 		*/
 		toArray( array, offset = 0 ) {
 
@@ -48151,27 +48239,27 @@
 
 			/**
 			* The name of this game entity.
-			* @type String
+			* @type {String}
 			*/
 			this.name = '';
 
 			/**
 			* Whether this game entity is active or not.
-			* @type Boolean
+			* @type {Boolean}
 			* @default true
 			*/
 			this.active = true;
 
 			/**
 			* The child entities of this game entity.
-			* @type Array
+			* @type {Array<GameEntity>}
 			*/
 			this.children = new Array();
 
 			/**
 			* A reference to the parent entity of this game entity.
 			* Automatically set when added to a {@link GameEntity}.
-			* @type GameEntity
+			* @type {GameEntity}
 			* @default null
 			* @readonly
 			*/
@@ -48179,89 +48267,82 @@
 
 			/**
 			* A list of neighbors of this game entity.
-			* @type Array
+			* @type {Array<GameEntity>}
 			* @readonly
 			*/
 			this.neighbors = new Array();
 
 			/**
 			* Game entities within this radius are considered as neighbors of this entity.
-			* @type Number
+			* @type {Number}
 			* @default 1
 			*/
 			this.neighborhoodRadius = 1;
 
 			/**
 			* Whether the neighborhood of this game entity is updated or not.
-			* @type Boolean
+			* @type {Boolean}
 			* @default false
 			*/
 			this.updateNeighborhood = false;
 
 			/**
 			* The position of this game entity.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.position = new Vector3$1();
 
 			/**
 			* The rotation of this game entity.
-			* @type Quaternion
+			* @type {Quaternion}
 			*/
 			this.rotation = new Quaternion$1();
 
 			/**
 			* The scaling of this game entity.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.scale = new Vector3$1( 1, 1, 1 );
 
 			/**
 			* The default forward vector of this game entity.
-			* @type Vector3
+			* @type {Vector3}
 			* @default (0,0,1)
 			*/
 			this.forward = new Vector3$1( 0, 0, 1 );
 
 			/**
 			* The default up vector of this game entity.
-			* @type Vector3
+			* @type {Vector3}
 			* @default (0,1,0)
 			*/
 			this.up = new Vector3$1( 0, 1, 0 );
 
 			/**
 			* The bounding radius of this game entity in world units.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.boundingRadius = 0;
 
 			/**
 			* The maximum turn rate of this game entity in radians per seconds.
-			* @type Number
+			* @type {Number}
 			* @default π
 			*/
 			this.maxTurnRate = Math.PI;
 
 			/**
 			* Whether the entity can activate a trigger or not.
-			* @type Boolean
+			* @type {Boolean}
 			* @default true
 			*/
 			this.canActivateTrigger = true;
 
 			/**
-			* A transformation matrix representing the world space of this game entity.
-			* @type Matrix4
-			* @readonly
-			*/
-			this.worldMatrix = new Matrix4$1();
-
-			/**
 			* A reference to the entity manager of this game entity.
 			* Automatically set when added to an {@link EntityManager}.
-			* @type EntityManager
+			* @type {EntityManager}
 			* @default null
 			* @readonly
 			*/
@@ -48272,6 +48353,10 @@
 			// local transformation matrix. no part of the public API due to caching
 
 			this._localMatrix = new Matrix4$1();
+
+			// internal world matrix reference (only accessible via a getter)
+
+			this._worldMatrix = new Matrix4$1();
 
 			// per-entity cache in order to avoid unnecessary matrix calculations
 
@@ -48290,12 +48375,34 @@
 
 			this._started = false;
 
-			// unique ID, primarily used in context of serialization/deserialization
+			//
 
 			this._uuid = null;
 
+			// if set to true, it means the world matrix requires a recomputation
+
+			this._worldMatrixDirty = false;
+
 		}
 
+		/**
+		* A transformation matrix representing the world space of this game entity.
+		* @type {Matrix4}
+		* @readonly
+		*/
+		get worldMatrix() {
+
+			this._updateWorldMatrix();
+
+			return this._worldMatrix;
+
+		}
+
+		/**
+		* Unique ID, primarily used in context of serialization/deserialization.
+		* @type {String}
+		* @readonly
+		*/
 		get uuid() {
 
 			if ( this._uuid === null ) {
@@ -48305,12 +48412,6 @@
 			}
 
 			return this._uuid;
-
-		}
-
-		set uuid( uuid ) {
-
-			this._uuid = uuid;
 
 		}
 
@@ -48446,58 +48547,6 @@
 		}
 
 		/**
-		* Updates the world matrix representing the world space.
-		*
-		* @param {Boolean} up - Whether to update the world matrices of the parents or not.
-		* @param {Boolean} down - Whether to update the world matrices of the children or not.
-		* @return {GameEntity} A reference to this game entity.
-		*/
-		updateWorldMatrix( up = false, down = false ) {
-
-			const parent = this.parent;
-			const children = this.children;
-
-			// update higher levels first
-
-			if ( up === true && parent !== null ) {
-
-				parent.updateWorldMatrix( true );
-
-			}
-
-			// update this entity
-
-			this._updateMatrix();
-
-			if ( parent === null ) {
-
-				this.worldMatrix.copy( this._localMatrix );
-
-			} else {
-
-				this.worldMatrix.multiplyMatrices( this.parent.worldMatrix, this._localMatrix );
-
-			}
-
-			// update lower levels
-
-			if ( down === true ) {
-
-				for ( let i = 0, l = children.length; i < l; i ++ ) {
-
-					const child = children[ i ];
-
-					child.updateWorldMatrix( false, true );
-
-				}
-
-			}
-
-			return this;
-
-		}
-
-		/**
 		* Sets a renderable component of a 3D engine with a sync callback for this game entity.
 		*
 		* @param {Object} renderComponent - A renderable component of a 3D engine.
@@ -48611,7 +48660,6 @@
 		*/
 		fromJSON( json ) {
 
-			this.uuid = json.uuid;
 			this.name = json.name;
 			this.active = json.active;
 			this.neighborhoodRadius = json.neighborhoodRadius;
@@ -48624,19 +48672,21 @@
 			this.boundingRadius = json.boundingRadius;
 			this.maxTurnRate = json.maxTurnRate;
 			this.canActivateTrigger = json.canActivateTrigger;
-			this.worldMatrix.fromArray( json.worldMatrix );
 
 			this.children = json.children.slice();
 			this.neighbors = json.neighbors.slice();
 			this.parent = json.parent;
 
 			this._localMatrix.fromArray( json._localMatrix );
+			this._worldMatrix.fromArray( json.worldMatrix );
 
 			this._cache.position.fromArray( json._cache.position );
 			this._cache.rotation.fromArray( json._cache.rotation );
 			this._cache.scale.fromArray( json._cache.scale );
 
 			this._started = json._started;
+
+			this._uuid = json.uuid;
 
 			return this;
 
@@ -48688,7 +48738,7 @@
 					cache.rotation.equals( this.rotation ) &&
 					cache.scale.equals( this.scale ) ) {
 
-				return this;
+				return;
 
 			}
 
@@ -48698,6 +48748,58 @@
 			cache.rotation.copy( this.rotation );
 			cache.scale.copy( this.scale );
 
+			this._worldMatrixDirty = true;
+
+		}
+
+		_updateWorldMatrix() {
+
+			const parent = this.parent;
+
+			if ( parent !== null ) {
+
+				parent._updateWorldMatrix();
+
+			}
+
+			this._updateMatrix();
+
+			if ( this._worldMatrixDirty === true ) {
+
+				if ( parent === null ) {
+
+					this._worldMatrix.copy( this._localMatrix );
+
+				} else {
+
+					this._worldMatrix.multiplyMatrices( this.parent._worldMatrix, this._localMatrix );
+
+				}
+
+				this._worldMatrixDirty = false;
+
+				// invalidate world matrices of children
+
+				const children = this.children;
+
+				for ( let i = 0, l = children.length; i < l; i ++ ) {
+
+					const child = children[ i ];
+					child._worldMatrixDirty = true;
+
+				}
+
+			}
+
+		}
+
+		// deprecated
+
+		updateWorldMatrix() {
+
+			// this warning will be removed with v1.0.0
+
+			console.warn( 'GameEntity: .updateWorldMatrix() has been removed. World matrices are automatically updated on access.' );
 			return this;
 
 		}
@@ -48738,19 +48840,19 @@
 
 			/**
 			* The velocity of this game entity.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.velocity = new Vector3$1();
 
 			/**
 			* The maximum speed at which this game entity may travel.
-			* @type Number
+			* @type {Number}
 			*/
 			this.maxSpeed = 1;
 
 			/**
 			* Whether the orientation of this game entity will be updated based on the velocity or not.
-			* @type Boolean
+			* @type {Boolean}
 			* @default true
 			*/
 			this.updateOrientation = true;
@@ -48874,14 +48976,14 @@
 
 			/**
 			* Whether this steering behavior is active or not.
-			* @type Boolean
+			* @type {Boolean}
 			* @default true
 			*/
 			this.active = true;
 
 			/**
 			* Can be used to tweak the amount that a steering force contributes to the total steering force.
-			* @type Number
+			* @type {Number}
 			* @default 1
 			*/
 			this.weight = 1;
@@ -49026,22 +49128,22 @@
 
 			/**
 			* The target vector.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.target = target;
 
 			/**
 			* The amount of deceleration.
-			* @type Number
+			* @type {Number}
 			* @default 3
 			*/
 			this.deceleration = deceleration;
 
 			/**
-			 * A tolerance value in world units to prevent the vehicle from overshooting its target.
-			 * @type {Number}
-			 * @default 0
-			 */
+			* A tolerance value in world units to prevent the vehicle from overshooting its target.
+			* @type {Number}
+			* @default 0
+			*/
 			this.tolerance = tolerance;
 
 		}
@@ -49145,7 +49247,7 @@
 
 			/**
 			* The target vector.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.target = target;
 
@@ -49304,13 +49406,13 @@
 
 			/**
 			* The target vector.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.target = target;
 
 			/**
 			* The agent only flees from the target if it is inside this radius.
-			* @type Number
+			* @type {Number}
 			* @default 10
 			*/
 			this.panicDistance = panicDistance;
@@ -49419,21 +49521,21 @@
 
 			/**
 			* The agent to evade from.
-			* @type MovingEntity
+			* @type {MovingEntity}
 			* @default null
 			*/
 			this.pursuer = pursuer;
 
 			/**
 			* The agent only flees from the pursuer if it is inside this radius.
-			* @type Number
+			* @type {Number}
 			* @default 10
 			*/
 			this.panicDistance = panicDistance;
 
 			/**
 			* This factor determines how far the vehicle predicts the movement of the pursuer.
-			* @type Number
+			* @type {Number}
 			* @default 1
 			*/
 			this.predictionFactor = predictionFactor;
@@ -49539,7 +49641,7 @@
 
 			/**
 			* Whether this path is looped or not.
-			* @type Boolean
+			* @type {Boolean}
 			*/
 			this.loop = false;
 
@@ -49705,13 +49807,13 @@
 
 			/**
 			* The path to follow.
-			* @type Path
+			* @type {Path}
 			*/
 			this.path = path;
 
 			/**
 			* The distance the agent seeks for the next waypoint.
-			* @type Number
+			* @type {Number}
 			* @default 1
 			*/
 			this.nextWaypointDistance = nextWaypointDistance;
@@ -49827,21 +49929,21 @@
 
 			/**
 			* The first agent.
-			* @type MovingEntity
+			* @type {MovingEntity}
 			* @default null
 			*/
 			this.entity1 = entity1;
 
 			/**
 			* The second agent.
-			* @type MovingEntity
+			* @type {MovingEntity}
 			* @default null
 			*/
 			this.entity2 = entity2;
 
 			/**
 			* The amount of deceleration.
-			* @type Number
+			* @type {Number}
 			* @default 3
 			*/
 			this.deceleration = deceleration;
@@ -49977,13 +50079,13 @@
 
 			/**
 			* The minimum bounds of the AABB.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.min = min;
 
 			/**
 			* The maximum bounds of the AABB.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.max = max;
 
@@ -50241,7 +50343,7 @@
 		/**
 		* Computes an AABB that encloses the given set of points.
 		*
-		* @param {Array} points - An array of 3D vectors representing points in 3D space.
+		* @param {Array<Vector3>} points - An array of 3D vectors representing points in 3D space.
 		* @return {AABB} A reference to this AABB.
 		*/
 		fromPoints( points ) {
@@ -50346,13 +50448,13 @@
 
 			/**
 			* The center position of the bounding sphere.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.center = center;
 
 			/**
 			* The radius of the bounding sphere.
-			* @type Number
+			* @type {Number}
 			*/
 			this.radius = radius;
 
@@ -50482,7 +50584,7 @@
 		/**
 		* Computes a bounding sphere that encloses the given set of points.
 		*
-		* @param {Array} points - An array of 3D vectors representing points in 3D space.
+		* @param {Array<Vector3>} points - An array of 3D vectors representing points in 3D space.
 		* @return {BoundingSphere} A reference to this bounding sphere.
 		*/
 		fromPoints( points ) {
@@ -50585,13 +50687,13 @@
 
 			/**
 			* The origin of the ray.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.origin = origin;
 
 			/**
 			* The direction of the ray.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.direction = direction;
 
@@ -51209,7 +51311,7 @@
 		/**
 		* Constructs a new obstacle avoidance behavior.
 		*
-		* @param {Array} obstacles - An Array with obstacle of type {@link GameEntity}.
+		* @param {Array<GameEntity>} obstacles - An Array with obstacle of type {@link GameEntity}.
 		*/
 		constructor( obstacles = new Array() ) {
 
@@ -51217,20 +51319,20 @@
 
 			/**
 			* An Array with obstacle of type {@link GameEntity}.
-			* @type Array
+			* @type {Array<GameEntity>}
 			*/
 			this.obstacles = obstacles;
 
 			/**
 			* This factor determines how much the vehicle decelerates if an intersection occurs.
-			* @type Number
+			* @type {Number}
 			* @default 0.2
 			*/
 			this.brakingWeight = 0.2;
 
 			/**
 			* Minimum length of the detection box used for intersection tests.
-			* @type Number
+			* @type {Number}
 			* @default 4
 			*/
 			this.dBoxMinLength = 4; //
@@ -51432,13 +51534,13 @@
 
 			/**
 			* The leader vehicle.
-			* @type Vehicle
+			* @type {Vehicle}
 			*/
 			this.leader = leader;
 
 			/**
 			* The offset from the leader.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.offset = offset;
 
@@ -51565,14 +51667,14 @@
 
 			/**
 			* The agent to pursue.
-			* @type MovingEntity
+			* @type {MovingEntity}
 			* @default null
 			*/
 			this.evader = evader;
 
 			/**
 			* This factor determines how far the vehicle predicts the movement of the evader.
-			* @type Number
+			* @type {Number}
 			* @default 1
 			*/
 			this.predictionFactor = predictionFactor;
@@ -51771,21 +51873,21 @@
 
 			/**
 			* The radius of the constraining circle for the wander behavior.
-			* @type Number
+			* @type {Number}
 			* @default 1
 			*/
 			this.radius = radius;
 
 			/**
 			* The distance the wander sphere is projected in front of the agent.
-			* @type Number
+			* @type {Number}
 			* @default 5
 			*/
 			this.distance = distance;
 
 			/**
 			* The maximum amount of displacement along the sphere each frame.
-			* @type Number
+			* @type {Number}
 			* @default 5
 			*/
 			this.jitter = jitter;
@@ -51915,13 +52017,13 @@
 
 			/**
 			* The vehicle that owns this steering manager.
-			* @type Vehicle
+			* @type {Vehicle}
 			*/
 			this.vehicle = vehicle;
 
 			/**
 			* A list of all steering behaviors.
-			* @type Array
+			* @type {Array<SteeringBehavior>}
 			* @readonly
 			*/
 			this.behaviors = new Array();
@@ -52246,7 +52348,7 @@
 
 			/**
 			* The amount of samples the smoother will use to average a vector.
-			* @type Number
+			* @type {Number}
 			* @default 10
 			*/
 			this.count = count;
@@ -52391,28 +52493,28 @@
 			super();
 
 			/**
-			* The mass if the vehicle in kilogram.
-			* @type Number
+			* The mass of the vehicle in kilogram.
+			* @type {Number}
 			* @default 1
 			*/
 			this.mass = 1;
 
 			/**
 			* The maximum force this entity can produce to power itself.
-			* @type Number
+			* @type {Number}
 			* @default 100
 			*/
 			this.maxForce = 100;
 
 			/**
 			* The steering manager of this vehicle.
-			* @type SteeringManager
+			* @type {SteeringManager}
 			*/
 			this.steering = new SteeringManager( this );
 
 			/**
 			* An optional smoother to avoid shakiness due to conflicting steering behaviors.
-			* @type Smoother
+			* @type {Smoother}
 			* @default null
 			*/
 			this.smoother = null;
@@ -52620,6 +52722,10 @@
 
 			super();
 
+			/**
+			* The size of the region.
+			* @type {Vector3}
+			*/
 			this.size = size;
 
 			this._aabb = new AABB();
@@ -52709,6 +52815,10 @@
 
 			super();
 
+			/**
+			* The radius of the region.
+			* @type {Number}
+			*/
 			this.radius = radius;
 
 			//
@@ -52801,7 +52911,7 @@
 
 			/**
 			* The region of the trigger.
-			* @type TriggerRegion
+			* @type {TriggerRegion}
 			*/
 			this.region = region;
 
@@ -52953,15 +53063,15 @@
 		constructor() {
 
 			/**
-			* A list of {@link GameEntity game entities }.
-			* @type Array
+			* A list of {@link GameEntity game entities}.
+			* @type {Array<GameEntity>}
 			* @readonly
 			*/
 			this.entities = new Array();
 
 			/**
 			* A reference to a spatial index.
-			* @type CellSpacePartitioning
+			* @type {CellSpacePartitioning}
 			* @default null
 			*/
 			this.spatialIndex = null;
@@ -53114,7 +53224,6 @@
 				// update entity
 
 				entity.update( delta );
-				entity.updateWorldMatrix();
 
 				// update children
 
@@ -53426,13 +53535,13 @@
 
 			/**
 			* The normal vector of the plane.
-			* @type Vector3
+			* @type {Vector3}
 			*/
 			this.normal = normal;
 
 			/**
 			* The distance of the plane from the origin.
-			* @type Number
+			* @type {Number}
 			*/
 			this.constant = constant;
 
@@ -53841,7 +53950,7 @@
 
 			/**
 			* The amount of updates per second.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.updateFrequency = updateFrequency;
@@ -53960,31 +54069,31 @@
 
 			/**
 			* The game entity that owns this state machine.
-			* @type GameEntity
+			* @type {GameEntity}
 			*/
 			this.owner = owner;
 
 			/**
 			* The current state of the game entity.
-			* @type State
+			* @type {State}
 			*/
 			this.currentState = null;
 
 			/**
 			* The previous state of the game entity.
-			* @type State
+			* @type {State}
 			*/
 			this.previousState = null; // a reference to the last state the agent was in
 
 			/**
 			* This state logic is called every time the state machine is updated.
-			* @type State
+			* @type {State}
 			*/
 			this.globalState = null;
 
 			/**
 			* A map with all states of the state machine.
-			* @type Map
+			* @type {Map<String,State>}
 			*/
 			this.states = new Map();
 
@@ -54336,7 +54445,7 @@
 		/**
 		* Constructs a new fuzzy composite term with the given values.
 		*
-		* @param {Array} terms - An arbitrary amount of fuzzy terms.
+		* @param {Array<FuzzyTerm>} terms - An arbitrary amount of fuzzy terms.
 		*/
 		constructor( terms = new Array() ) {
 
@@ -54344,7 +54453,7 @@
 
 			/**
 			* List of fuzzy terms.
-			* @type Array
+			* @type {Array<FuzzyTerm>}
 			*/
 			this.terms = terms;
 
@@ -54678,7 +54787,7 @@
 
 			/**
 			* Represents the degree of membership to this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.degreeOfMembership = 0;
@@ -54688,21 +54797,21 @@
 			* the set is triangular then this will be the peak point of the triangular.
 			* If the set has a plateau then this value will be the mid point of the
 			* plateau. Used to avoid runtime calculations.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.representativeValue = representativeValue;
 
 			/**
 			* Represents the left border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.left = 0;
 
 			/**
 			* Represents the right border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.right = 0;
@@ -54713,6 +54822,11 @@
 
 		}
 
+		/**
+		* Unique ID, primarily used in context of serialization/deserialization.
+		* @type {String}
+		* @readonly
+		*/
 		get uuid() {
 
 			if ( this._uuid === null ) {
@@ -54722,12 +54836,6 @@
 			}
 
 			return this._uuid;
-
-		}
-
-		set uuid( uuid ) {
-
-			this._uuid = uuid;
 
 		}
 
@@ -54816,7 +54924,8 @@
 			this.representativeValue = json.representativeValue;
 			this.left = json.left;
 			this.right = json.right;
-			this.uuid = json.uuid;
+
+			this._uuid = json.uuid;
 
 			return this;
 
@@ -54850,21 +54959,21 @@
 
 			/**
 			* Represents the left border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.left = left;
 
 			/**
 			* Represents the peak value of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.midpoint = midpoint;
 
 			/**
 			* Represents the right border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.right = right;
@@ -54966,21 +55075,21 @@
 
 			/**
 			* Represents the left border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.left = left;
 
 			/**
 			* Represents the peak value of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.midpoint = midpoint;
 
 			/**
 			* Represents the right border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.right = right;
@@ -55078,21 +55187,21 @@
 
 			/**
 			* Represents the left border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.left = left;
 
 			/**
 			* Represents the peak value of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.midpoint = midpoint;
 
 			/**
 			* Represents the right border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.right = right;
@@ -55169,21 +55278,21 @@
 
 			/**
 			* Represents the left border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.left = left;
 
 			/**
 			* Represents the peak value of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.midpoint = midpoint;
 
 			/**
 			* Represents the right border of this fuzzy set.
-			* @type Number
+			* @type {Number}
 			* @default 0
 			*/
 			this.right = right;
@@ -55282,14 +55391,14 @@
 
 			/**
 			* Represents the condition of the rule.
-			* @type FuzzyTerm
+			* @type {FuzzyTerm}
 			* @default null
 			*/
 			this.antecedent = antecedent;
 
 			/**
 			* Describes the consequence if the condition is satisfied.
-			* @type FuzzyTerm
+			* @type {FuzzyTerm}
 			* @default null
 			*/
 			this.consequence = consequence;
@@ -55435,7 +55544,7 @@
 
 			/**
 			* An array of the fuzzy sets that comprise this FLV.
-			* @type Array
+			* @type {Array<FuzzySet>}
 			* @readonly
 			*/
 			this.fuzzySets = new Array();
@@ -55443,7 +55552,7 @@
 			/**
 			* The minimum value range of this FLV. This value is
 			* automatically updated when adding/removing fuzzy sets.
-			* @type Number
+			* @type {Number}
 			* @default Infinity
 			* @readonly
 			*/
@@ -55452,7 +55561,7 @@
 			/**
 			* The maximum value range of this FLV. This value is
 			* automatically updated when adding/removing fuzzy sets.
-			* @type Number
+			* @type {Number}
 			* @default - Infinity
 			* @readonly
 			*/
@@ -55694,14 +55803,14 @@
 
 			/**
 			* An array of the fuzzy rules.
-			* @type Array
+			* @type {Array<FuzzyRule>}
 			* @readonly
 			*/
 			this.rules = new Array();
 
 			/**
 			* A map of FLVs.
-			* @type Map
+			* @type {Map<String,FuzzyVariable>}
 			* @readonly
 			*/
 			this.flvs = new Map();
@@ -55955,13 +56064,13 @@
 
 			/**
 			* The owner of this goal.
-			* @type GameEntity
+			* @type {GameEntity}
 			*/
 			this.owner = owner;
 
 			/**
 			* The status of this goal.
-			* @type Status
+			* @type {Status}
 			* @default INACTIVE
 			*/
 			this.status = Goal.STATUS.INACTIVE;
@@ -59088,7 +59197,7 @@
 					break;
 
 				default:
-					throw new Error( 'THREE.GLTFLoader: Unexpected light type, "' + lightDef.type + '".' );
+					throw new Error( 'THREE.GLTFLoader: Unexpected light type: ' + lightDef.type );
 
 			}
 
@@ -61474,11 +61583,13 @@
 		/** When Object3D instances are targeted by animation, they need unique names. */
 		GLTFParser.prototype.createUniqueName = function ( originalName ) {
 
-			var name = PropertyBinding.sanitizeNodeName( originalName || '' );
+			var sanitizedName = PropertyBinding.sanitizeNodeName( originalName || '' );
+
+			var name = sanitizedName;
 
 			for ( var i = 1; this.nodeNamesUsed[ name ]; ++ i ) {
 
-				name = originalName + '_' + i;
+				name = sanitizedName + '_' + i;
 
 			}
 
@@ -65378,7 +65489,7 @@
 	const _direction$1 = new Vector3$1();
 	const _scale$1 = new Vector3$1( 1, 1, 1 );
 
-	const _matrix$1 = new Matrix4$1();
+	const _matrix$2 = new Matrix4$1();
 	const _inverseMatrix$3 = new Matrix4$1();
 
 	const _forward = new Vector3$1( 0, 0, 1 );
@@ -65824,8 +65935,8 @@
 			_direction$1.subVectors( target, start ).normalize();
 			_rotation$1.lookAt( _forward, _direction$1, _up );
 
-			_matrix$1.compose( start, _rotation$1, _scale$1 );
-			_matrix$1.getInverse( _inverseMatrix$3 );
+			_matrix$2.compose( start, _rotation$1, _scale$1 );
+			_matrix$2.getInverse( _inverseMatrix$3 );
 
 			// check all players of the opposing team
 
